@@ -1,20 +1,28 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+# Camperfuchs-Team Marketplace
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+Geteilte Claude-Plugins fuer Camperfuchs / Rentanda (Bjoern + Bahti). Damit kennt eure Claude
+unsere gemeinsamen Projekte, ohne Zugriff auf fremde Accounts oder Secrets.
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+## Schnell installieren (Bahti)
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+1. Die Datei **`camperfuchs-kontext.plugin`** aus diesem Repo herunterladen.
+2. In Cowork oeffnen und auf **Installieren** klicken.
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+Danach kennt deine Claude: Architektur (WordPress + Next.js-App), Hosting/Serving-Kette,
+Repo & Branch-Flow, Caching-Stack, SEO-Setup, Konventionen — plus das **WP-502-Notfall-Runbook**.
+
+## Updaten
+
+Neue `camperfuchs-kontext.plugin` aus dem Repo ziehen und erneut installieren. Bjoern legt bei
+Aenderungen eine neue Version ab.
+
+## Inhalt
+
+- `camperfuchs-kontext.plugin` — fertiges Plugin zum Installieren (Cowork).
+- `.claude-plugin/marketplace.json` + `plugins/camperfuchs-kontext/` — der Quellbaum (fuer den
+  `/plugin marketplace add`-Weg und zum Nachvollziehen/Aendern). Wird per `git push` gepflegt.
+
+## Keine Secrets
+
+Dieses Repo enthaelt **keine** Tokens oder Passwoerter — nur nicht-geheime IDs (IPs, Droplet-/
+Zone-IDs), die ein Entwickler ohnehin braucht.
