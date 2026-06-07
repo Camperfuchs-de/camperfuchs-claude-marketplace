@@ -9,6 +9,17 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## 0.3.0 — 07.06.2026
+
+- Neuer Skill `camperfuchs-cache-purge`: gezielter Cloudflare-Edge-Purge für
+  camperfuchs.de (Skript `scripts/cf_purge.sh` — einzelne URLs, mehrere, oder `--all`,
+  automatische 30er-Blöcke). Löst das Edge-Layer-Propagationsproblem (APO `s-maxage` 1 Jahr).
+- **Standing Rule** im Skill verankert: nach JEDEM selbst ausgelösten WP-API-Content-Edit
+  die betroffene URL sofort purgen (nicht auf Nachfrage warten).
+- Hinweis: Purge-fähig ist nur der BENUTZER-Token (liegt lokal in `.secrets`, NICHT im Plugin);
+  Edge-Purge deckt nicht den SPC-Disk-Cache am Origin (separates Bahti-Thema). Alternativer
+  Weg: SPC-REST `POST /wp-json/spc/v1/cache/purge`.
+
 ## 0.2.0 — 03.06.2026
 
 - Serving-Kette korrigiert (per DO-API + curl verifiziert): Live-WP-Backend =
