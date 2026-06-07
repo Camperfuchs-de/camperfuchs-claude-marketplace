@@ -9,6 +9,15 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## 0.4.0 — 07.06.2026
+
+- Neuer Skill `camperfuchs-agent-readiness`: prüft die KI-/Agenten-Auffindbarkeit von
+  camperfuchs.de (Markdown for Agents, Link-Header→llms.txt, llms.txt) per curl und
+  triagiert die Agent-Discovery-Standards (OAuth/OIDC, MCP-Server-Card, ACP, x402,
+  DNS-AID, WebMCP, API-Catalog) nach ECHTEM Nutzen — statt blind isitagentready-Haken zu jagen.
+- Merksatz verankert: Stubs ohne echtes Backend sind schädlich (Agent versucht→scheitert→Seite
+  wirkt kaputt); isitagentready-„operation was aborted" = Checker-Timeout, kein echtes Loch.
+
 ## 0.3.0 — 07.06.2026
 
 - Neuer Skill `camperfuchs-cache-purge`: gezielter Cloudflare-Edge-Purge für
