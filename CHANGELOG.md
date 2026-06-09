@@ -9,6 +9,18 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## 0.5.0 — 08.06.2026
+
+- Neuer Skill `camperfuchs-verfuegbarkeits-flow`: Betrieb/Änderung/Troubleshooting des
+  Vermieter-Verfügbarkeits-Flows (Make 5482694 + 6030776) — System-Landkarte (alle IDs),
+  zweistufiger Scanner-Schutz, Antwort-Tracking (Datastore 131528), Mieter-Entwurf bei NEIN,
+  Test-Rezepte und Gotchas.
+- Neu darin: **Fahrzeug-Link + Telefon als Info-Buttons** in der Verfügbarkeits-Mail (M2).
+  Fahrzeug-URL wird OHNE Regex-Änderung im Mapper aus `{{7.fahrzeug}}` (Format „Name [URL]")
+  gezogen (`split/first/trim` + `if/contains/replace/last`, Fallback Homepage) → kein
+  Parser-Risiko. Plus Schema-Falle dokumentiert: `validate_blueprint_schema` lehnt top-level
+  `scheduling`/`interface` ab → vor validate/update strippen (Blueprint = name/flow/metadata).
+
 ## 0.4.0 — 07.06.2026
 
 - Neuer Skill `camperfuchs-agent-readiness`: prüft die KI-/Agenten-Auffindbarkeit von
