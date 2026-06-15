@@ -9,6 +9,20 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## 0.6.0 — 15.06.2026
+
+- `camperfuchs-verfuegbarkeits-flow`: **NEIN-Pfad bietet jetzt optional Alternativ-Zeitraum +
+  Alternativ-Fahrzeug an.** Router 11 in 6030776 hat DREI Routen — neue Modul-20-Formular-Seite
+  bei `aktion=nein` (zwei optionale Freitextfelder → `alt_zeitraum`/`alt_fahrzeug` per
+  GET-Formular zurück an den Hook), Modul 12 (Button-Seite) auf `aktion≠nein` verengt.
+  Mieter-Entwurf (M10) baut die Alternative über zwei `if()`-Fragmente ein (leerer String =
+  falsy → kein hängender Satz), bleibt Entwurf; Björn-Info (M5) zeigt die Alternative. Variante B
+  (Vermieter wählt eigene Fahrzeuge) bewusst verworfen — `/api/V1/articles` kennt keinen
+  Vermieter, bräuchte Backend-Endpoint.
+- Gelernt + dokumentiert: der Make-**Hook** ist aus der Sandbox per `curl` testbar (Test-Rezept
+  headless ohne Chrome); `scenarios_run`-`data` mappt NICHT auf Webhook-Felder; riesige
+  Mapper-Strings (M10-Signatur) nie von Hand neu tippen → Python-Edit auf Rohtext + Token-Reread.
+
 ## 0.5.0 — 08.06.2026
 
 - Neuer Skill `camperfuchs-verfuegbarkeits-flow`: Betrieb/Änderung/Troubleshooting des
