@@ -1,4 +1,4 @@
-﻿# Changelog â€” camperfuchs-kontext
+# Changelog â€” camperfuchs-kontext
 
 Der hier dokumentierte Stand ist die **eine Wahrheit** fÃ¼r beide Seiten. Die aktuell gÃ¼ltige
 Versionsnummer steht in `plugins/camperfuchs-kontext/.claude-plugin/plugin.json` und muss mit
