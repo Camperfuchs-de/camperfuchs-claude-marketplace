@@ -1,7 +1,7 @@
 {
   "name": "camperfuchs-kontext",
-  "version": "0.10.0",
-  "description": "Geteilter technischer Projektkontext fuer Camperfuchs/Rentanda — Architektur, Infrastruktur, Repo & Deploy, Caching, SEO-Setup und Konventionen, plus WP-502-Notfall-Runbook, Cloudflare-Cache-Purge, Agent-Readiness/AEO-Check und der Vermieter-Verfuegbarkeits-Flow (Make 5482694/6030776). Damit Bahtis Claude ueber die gemeinsamen Projekte Bescheid weiss. Enthaelt KEINE Tokens/Passwoerter.",
+  "version": "0.11.0",
+  "description": "Geteilter technischer Projektkontext fuer Camperfuchs/Rentanda — Architektur, Infrastruktur, Repo & Deploy, Caching, SEO-Setup und Konventionen, plus WP-502-Notfall-Runbook, Cloudflare-Cache-Purge, Agent-Readiness/AEO-Check, der Vermieter-Verfuegbarkeits-Flow (Make 5482694/6030776), der Frontend-Ship-Loop und die Sammelanfrage/Merkzettel-Landkarte. Damit Bahtis Assistent ueber die gemeinsamen Projekte Bescheid weiss. Enthaelt KEINE Tokens/Passwoerter.",
   "author": {
     "name": "Rentanda GmbH / Camperfuchs"
   },
@@ -11,6 +11,8 @@
     "wordpress",
     "nextjs",
     "cloudflare",
-    "kontext"
+    "kontext",
+    "sammelanfrage",
+    "merkzettel"
   ]
 }

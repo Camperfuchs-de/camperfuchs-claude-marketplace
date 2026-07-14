@@ -9,6 +9,25 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## 0.11.0 — 14.07.2026
+
+- **Neue Skill `camperfuchs-sammelanfrage`** ins Plugin aufgenommen: System-Landkarte der
+  Sammelanfrage + des Merkzettels (MerkzettelContext/localStorage `cf_merkzettel_v1`,
+  `sammelanfrage.tsx`, `BookingCalculator` mit `merkMode`, Detailseite `?merk=1&merkLoc=`,
+  Backend `fare` + `bookings/group`), Datenmodell, Endpoints und der „Weg 2"-Flow (eigener
+  Reisezeitraum + Zubehoer JE Fahrzeug, live prod seit 08.07.2026, Merge `672680b5`).
+- **Teuer gelernte Fallen dokumentiert:** `update()` ist auf `article`+`articleLocation` gekeyt —
+  ein falsches/erfundenes `merkLoc` schreibt still nichts zurueck und sieht aus wie „Rueckweg
+  kaputt"; `extras` speichert Zubehoer-**Namen**, die Checkboxen nutzen `index` (beide Seiten
+  anfassen); `/sammelanfrage` per Direkt-URL haengt/404t (separate, vorbestehende Routing-Luecke,
+  nicht Weg 2 — in-app navigieren); zwei `BookingCalculator`-Instanzen (Desktop + Mobile).
+- **Browser-Verifikations-Fallen ergaenzt:** Screenshots timen auf den Fahrzeug-Detailseiten aus
+  (CDP 30 s) → `get_page_text` nutzen; `read_page filter:interactive` verschluckt Elemente, die im
+  Seitentext stehen; Sticky-Sidebar braucht `scroll_to {ref}`; Mobile-Optik ist nicht simulierbar
+  (`resize_window` aendert `innerWidth` nicht).
+
+---
+
 ## 0.10.0 — 09.07.2026
 
 - **Neue Skill `camperfuchs-frontend-feature-shippen`** ins Plugin aufgenommen (Idee → live:
