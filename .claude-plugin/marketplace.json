@@ -1,0 +1,15 @@
+{
+  "name": "camperfuchs-team",
+  "owner": {
+    "name": "Rentanda GmbH / Camperfuchs",
+    "email": "b.dunker@camperfuchs.de"
+  },
+  "description": "Interner Marketplace fuer Camperfuchs/Rentanda — geteilte Claude-Plugins fuer das Team (Bjoern + Bahti). Enthaelt KEINE Secrets.",
+  "plugins": [
+    {
+      "name": "camperfuchs-kontext",
+      "source": "./plugins/camperfuchs-kontext",
+      "description": "Geteilter technischer Projektkontext (Architektur, Infra, Repo, Caching, SEO, Konventionen) + WP-502-Notfall-Runbook."
+    }
+  ]
+}

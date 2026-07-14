@@ -9,6 +9,42 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## 0.10.0 — 09.07.2026
+
+- **Neue Skill `camperfuchs-frontend-feature-shippen`** ins Plugin aufgenommen (Idee → live:
+  richtige Komponente finden, Worktree off `origin/main`, PR-/Deploy-Kette, Verifikation).
+- **Schritt 5 korrigiert (teuer gelernt 09.07.):** Der Live-Beleg per JS-Bundle-Fingerprint muss
+  die Chunks über `/_next/static/<buildId>/_buildManifest.js` enumerieren. Seit PR #1303
+  (`perf/code-split-datepicker`) werden Datepicker/BookingCalculator lazy nachgeladen und stehen
+  NICHT im initialen HTML — wer nur das HTML scannt, schließt fälschlich „Fix nicht live".
+  Ergänzt: i18n-Keys sind kein Komponenten-Marker, taugliche vs. untaugliche Fingerprints,
+  „Quelle schlägt Bundle", PowerShell-Fallen (`$`-Stripping, `-LiteralPath`, abgeschnittene Ausgabe).
+- **Repo-Struktur repariert:** Der vollständige Quellbaum (`plugins/`, `.claude-plugin/`) liegt jetzt
+  im Azure-Repo. Vorher lagen dort nur flache Dateien (Browser-Upload konnte keine Unterordner) —
+  dadurch waren die Versionen **0.7.0–0.9.0 nie veröffentlicht**; mit diesem Stand nachgezogen.
+- **Pflege künftig per `git push` (SSH)** statt Browser-Upload → `quellbaum.zip`-Krücke entfällt.
+
+## 0.9.0 — 23.06.2026
+
+- `camperfuchs-verfuegbarkeits-flow`: **Rückfrage hat jetzt ein Freitext-Formular** (Modul 30, live 23.06.). Klickt der Vermieter „Rückfrage", kommt statt der reinen Bestätigungsseite eine Formularseite (CF-Palette) mit Textfeld „Deine Frage oder Anmerkung" → neuer Webhook-Param `frage`; Modul 7 (Björn-Info-Mail) zeigt den Text im Beige-Block. Router 11 jetzt VIER Routen (Modul 12 nur noch JA via Zusatz-Filter `aktion notequal rueckfrage`; Modul 30 = `aktion equal rueckfrage`). JA/NEIN unverändert. Doku: neue Sektion „Rückfrage-Formular: Modul 30", Params- und Aufgaben-Liste ergänzt.
+
+## 0.8.0 — 16.06.2026
+
+- `camperfuchs-projekt`: Stand-Updates seit 03.06. nachgezogen — Origin-TLS jetzt DNS-01/Cloudflare-renewt + CF-SSL "Full (strict)" (14.06.); Backend `max-http-header-size` 64KB gegen `/api/V1/articles` HTTP-400 "Suche nicht geladen" (#816, 16.06.); Consent vereinheitlicht (11.06.) + funktionierender SPC-Cache-Purge per REST `POST /wp-json/spc/v1/cache/purge`; Cache Reserve als 3. Ebene; prod-Gate min=1 (Björn allein freigabefähig); new.camperfuchs.de = neue Homepage (WP/Kadence); /de-Routing-Backlog #533-545 live + Sitemap-lowercase-Restproblem; lokale Dev-Umgebung F:\dev\camperfuchs.
+
+## 0.7.0 — 15.06.2026
+
+- `camperfuchs-verfuegbarkeits-flow`: NEIN-**Modul 20 ist jetzt ein Fahrzeug-Picker** (Variante B
+  LIVE) — lädt die freien Fahrzeuge des Vermieters per `GET /api/V1/articles/by-landlord?email=`
+  als antippbare Radio-Liste (inkl. Kennzeichen hinter dem Namen). Die frühere Notiz „Variante B
+  nicht möglich / nur Freitext" wurde entfernt.
+- Neues **Backend-Muster** dokumentiert: ein vermieter-eigenes Zusatzfeld NUR in `by-landlord`
+  ausliefern — Feld in `ArticleOverviewVM` mit field-level `@JsonInclude(NON_NULL)`, NICHT in
+  `from()` setzen, nur in `findArticlesByLandlordEmail` anreichern (`enrichWithLicensePlate`) →
+  öffentliche `/api/V1/articles`-Suche bleibt ohne das Feld. Inkl. Kennzeichen-Beispiel (PR #788),
+  Spaltennamen-Falle (`licensePlateNumber`→`number_plate`, `deactivated`→`deleted`) und
+  Datenschutz-Hinweis (by-landlord ist öffentlich/ohne Login → Feld per E-Mail abfragbar).
+
 ## 0.6.0 — 15.06.2026
 
 - `camperfuchs-verfuegbarkeits-flow`: **NEIN-Pfad bietet jetzt optional Alternativ-Zeitraum +
@@ -50,22 +86,4 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
   camperfuchs.de (Skript `scripts/cf_purge.sh` — einzelne URLs, mehrere, oder `--all`,
   automatische 30er-Blöcke). Löst das Edge-Layer-Propagationsproblem (APO `s-maxage` 1 Jahr).
 - **Standing Rule** im Skill verankert: nach JEDEM selbst ausgelösten WP-API-Content-Edit
-  die betroffene URL sofort purgen (nicht auf Nachfrage warten).
-- Hinweis: Purge-fähig ist nur der BENUTZER-Token (liegt lokal in `.secrets`, NICHT im Plugin);
-  Edge-Purge deckt nicht den SPC-Disk-Cache am Origin (separates Bahti-Thema). Alternativer
-  Weg: SPC-REST `POST /wp-json/spc/v1/cache/purge`.
-
-## 0.2.0 — 03.06.2026
-
-- Serving-Kette korrigiert (per DO-API + curl verifiziert): Live-WP-Backend =
-  139.59.155.118 (Droplet `www.camperfuchs.de-wordpress`, ID 34020513) hinter
-  LB 157.245.21.250 → K8s. `209.38.194.145` = `wp.` (NICHT live). Auch im
-  wp-502-Runbook korrigiert.
-- Neu im Projektkontext: E-Mail-Infrastruktur (Mailgun rentanda.com, Spam-Thema
-  Kai/Mailtrack), Automatisierung (Make.com, Team 345711), Preis-Positionierung.
-
-## 0.1.0 — 03.06.2026
-
-- Erste Version: Skill `camperfuchs-projekt` (Architektur, Hosting, Repo, Caching,
-  SEO/Schema, Performance, Subdomains, Design-Tokens, Konventionen) + Skill
-  `wp-502-debug` (Notfall-Runbook).
+  die betroffene URL sofort
