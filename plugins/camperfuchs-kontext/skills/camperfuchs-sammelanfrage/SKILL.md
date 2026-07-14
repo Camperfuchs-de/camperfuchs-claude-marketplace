@@ -128,11 +128,11 @@ Fallen dabei (09.07. gelernt):
 - Der Rechner ist eine **Sticky-Sidebar**: Seiten-Scroll bringt den Button am Kartenende nicht ins
   Bild → `read_page` → ref → `scroll_to {ref}` → per ref klicken.
 - **Mobile-Optik laesst sich nicht simulieren** (`resize_window` aendert `innerWidth` nicht) →
-  Bjoern schaut auf dem Handy.
+  Bjoern schaut auf dem Handy. Nie ein Desktop-Layout als „mobil geprueft" ausgeben.
 
 ## Stand
 
-Weg 2 ist **live auf prod seit 08.07.2026** (Merge `672680b5`, def13-Build). Verifiziert: je
-Fahrzeug eigener Zeitraum + Preis + Zubehoer, Rueckweg-Button auf der Detailseite.
-Offen: Mobile-Optik nie visuell geprueft; die `/sammelanfrage`-Direkt-URL-Routing-Luecke ist ein
-eigenes Ticket.
+Weg 2 ist **live auf prod seit 08.07.2026** (Merge `672680b5`, def13-Build) und **vollstaendig
+abgenommen**: Desktop verifiziert (je Fahrzeug eigener Zeitraum + Preis + Zubehoer, Rueckweg-Button
+auf der Detailseite), **Mobile-Optik von Bjoern am Handy geprueft (14.07.) — sitzt**.
+Offen bleibt nur die `/sammelanfrage`-Direkt-URL-Routing-Luecke (eigenes Ticket, nicht Weg 2).
