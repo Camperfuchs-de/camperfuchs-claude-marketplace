@@ -10,8 +10,8 @@ description: >
   nicht"). Enthaelt System-Landkarte (MerkzettelContext, sammelanfrage.tsx, BookingCalculator
   merkMode, Detailseite merk/merkLoc, Backend fare+group), Datenmodell, Endpoints und die teuer
   gelernten Fallen: update() ist auf article+articleLocation gekeyt (falsches merkLoc schreibt
-  still nichts), extras speichert NAMEN statt Indizes, /sammelanfrage per Direkt-URL haengt
-  (separate Routing-Luecke). NICHT fuer den Verfuegbarkeits-Flow oder die Deploy-Kette.
+  still nichts) und extras speichert NAMEN statt Indizes.
+  NICHT fuer den Verfuegbarkeits-Flow oder die Deploy-Kette.
 metadata:
   type: skill
   scope: camperfuchs-rentanda
@@ -106,10 +106,11 @@ Fuer den Rest zeigt die Seite die Hinweise `anyOhneDatum` / `anyBelegt`.
   Namen → Indizes zurueck, sobald die `fare`-`additions` geladen sind (`addInitSig` verhindert,
   dass inline gesetzte Haken ueberschrieben werden). Wer auf Indizes umstellt, muss beide Seiten
   anfassen.
-- **`/sammelanfrage` per Direkt-URL haengt / 404t.** Bekannte, vorbestehende Routing-Luecke
-  (`/sammelanfrage`, `/merkzettel`, `/group` sind nicht an Next geroutet) — **nicht** Weg 2. Der
-  In-App-Weg (Suche → merken → „Alle anfragen") funktioniert. Beim Verifizieren immer in-app
-  navigieren, sonst Fehlalarm.
+- ✅ **`/sammelanfrage` per Direkt-URL: GEFIXT** (14.07. verifiziert, HTTP 200, echte Next-Seite mit
+  `__NEXT_DATA__`). Die Route wird ueber die **nginx-Allowlist in `chart/values.yaml`** an Next
+  geroutet — NICHT ueber Cloudflare. Historie: davor 404/haengend; wer aeltere Notizen liest,
+  glaubt faelschlich an eine offene Luecke. ⚠️ `/merkzettel` gibt 307, `/group` 404 — das ist so
+  gewollt, keine Seiten. Vor dem Melden einer „Routing-Luecke" IMMER live curlen.
 - **Zwei `BookingCalculator`-Instanzen** auf der Detailseite (Desktop + Mobile). Aenderungen
   gehoeren in die Komponente, nicht in eine der beiden Einbindungen.
 - **`noindex`:** `/sammelanfrage` traegt bewusst `robots: noindex,follow`.
@@ -135,4 +136,5 @@ Fallen dabei (09.07. gelernt):
 Weg 2 ist **live auf prod seit 08.07.2026** (Merge `672680b5`, def13-Build) und **vollstaendig
 abgenommen**: Desktop verifiziert (je Fahrzeug eigener Zeitraum + Preis + Zubehoer, Rueckweg-Button
 auf der Detailseite), **Mobile-Optik von Bjoern am Handy geprueft (14.07.) — sitzt**.
-Offen bleibt nur die `/sammelanfrage`-Direkt-URL-Routing-Luecke (eigenes Ticket, nicht Weg 2).
+Auch die frueher offene `/sammelanfrage`-Direkt-URL liefert seit 14.07. sauber 200.
+**Nichts offen.**
