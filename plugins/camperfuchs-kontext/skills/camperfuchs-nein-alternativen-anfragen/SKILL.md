@@ -1,6 +1,17 @@
 ---
 name: camperfuchs-nein-alternativen-anfragen
-description: Feature "Bei NEIN konkrete Alternativen beim jeweiligen Vermieter anfragen" — Wenn ein Vermieter eine Mietanfrage mit NEIN absagt, kann Björn aus der NEIN-Info-Mail über einen Button eine Picker-Seite öffnen, die die tatsächlich freien Fahrzeuge im Zeitraum/Umkreis zeigt (gefiltert nach Personenzahl/Betten, Bauart, Preis, Haustiere, Umkreis), und pro Fahrzeug mit einem Klick eine Verfügbarkeits-Anfrage an genau diesen Alt-Vermieter schicken. Umfasst: Backend-Endpoint landlord-contact (article-id → Vermieter-Mail, key-gated), eigenes Make-Szenario 6559455 "NEIN-Alternativen anfragen" (Hook m5jc…, Picker-Route alt=1 + Send-Route send_alt=1), den Modul-5-Button in Szenario 6030776, und den Personen-Parser in Szenario 5482694. IMMER nutzen bei: "Alternativen anfragen"-Button/-Seite, Picker zeigt keine/falsche Fahrzeuge, Filter (Personen/Betten/minBeds, Bauart, Preis, Haustiere, Umkreis) ändern, "Anfrage geht nicht an Alt-Vermieter raus", landlord-contact-Endpoint, Hook m5jcmvmvw2dkfoyv6vp9q5i3fla2k31a, Szenario 6559455, Personenzahl-Filter/Anzahl Erwachsene+Kinder. NICHT für den JA/NEIN/Rückfrage-Grundflow selbst (→ camperfuchs-vermieter-verfuegbarkeit-buttons bzw. camperfuchs-verfuegbarkeits-flow) oder den Mailversand-Trigger 5482694-Grundlogik.
+description: >
+  Feature „Bei NEIN konkrete Alternativen beim jeweiligen Vermieter anfragen": Sagt ein Vermieter
+  zu einer Mietanfrage NEIN, oeffnet Bjoern aus der NEIN-Info-Mail per Button eine Picker-Seite mit
+  den tatsaechlich freien Fahrzeugen im Zeitraum/Umkreis (Filter Personen/Betten, Bauart, Preis,
+  Haustiere, Umkreis) und schickt pro Fahrzeug mit einem Klick eine Verfuegbarkeits-Anfrage an
+  genau diesen Alt-Vermieter. IMMER nutzen bei „Alternativen anfragen"-Button/-Seite, Picker zeigt
+  keine oder falsche Fahrzeuge, Filter aendern, „Anfrage geht nicht an den Alt-Vermieter raus",
+  landlord-contact-Endpoint, Szenario 6559455, Hook m5jc…, Personenzahl-Filter (Erwachsene+Kinder).
+  Enthaelt die System-Landkarte (Backend-Endpoint landlord-contact key-gated, Make 6559455 mit
+  Picker-Route alt=1 + Send-Route send_alt=1, Modul-5-Button in 6030776, Personen-Parser in
+  5482694) und die teuer gelernten Fallen. NICHT fuer den JA/NEIN/Rueckfrage-Grundflow selbst
+  (→ camperfuchs-verfuegbarkeits-flow) oder die 5482694-Grundlogik.
 ---
 
 # Camperfuchs: NEIN-Alternativen beim jeweiligen Vermieter anfragen
