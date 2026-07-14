@@ -72,6 +72,13 @@ aber auch nicht mehr (siehe tar-Falle).
    ```
 4. **Zip verifizieren** (nicht annehmen): Integrität ok, **0 Backslash-Pfade**,
    `.claude-plugin/plugin.json` auf oberster Ebene, Version + Skill-Zahl stimmen.
+4b. **ALLE Skills validieren, nicht nur die geänderten** — der Installer prüft jede einzelne und
+   bricht beim ersten Fehler ab (14.07. zweimal passiert). Je SKILL.md: `description` **≤1024
+   Zeichen**, gültiges YAML-Frontmatter, `name` gesetzt, kein BOM. **Mit einem echten YAML-Parser
+   prüfen, nicht per Regex** — eigene PowerShell-Regexe lieferten drei Fehlalarme (gequotete
+   `description: "…"` als „kaputt", korrekte Längen als „zu lang"). Rezept: `.plugin` unter einem
+   **frischen Dateinamen** in den Projektordner kopieren (Mount-Cache!), dann in der Sandbox
+   entpacken und mit `yaml.safe_load` je SKILL.md prüfen.
 5. **Secret-Scan** über den Baum: `cfut_`, `dop_v1_`, `ghp_`, `github_pat_`, `sk-ant-`, `AIza`,
    `BEGIN … PRIVATE KEY`, 52-stellige Alnum → muss leer sein.
 6. **Commit + Push:** `git add …; git commit -m "vX.Y.Z: …"; git push origin main`.
@@ -101,6 +108,17 @@ aber auch nicht mehr (siehe tar-Falle).
 - **`tar.exe` ist der Weg**, NICHT `Compress-Archive` (PS 5.1) und NICHT
   `[IO.Compression.ZipFile]::CreateFromDirectory` — die schreiben **Backslash-Pfade** und
   verletzen die ZIP-Spec. Das `*`-Glob nimmt `.claude-plugin` mit (kein Dot-Folder-Problem).
+- ⛔ **PowerShell `Set-Content -Encoding UTF8` schreibt ein BOM** (PS 5.1) → `plugin.json` wird
+  ungültig, Installation scheitert mit „Invalid JSON in plugin.json: Unexpected UTF-8 BOM".
+  Genau so ist v0.12.0 beim ersten Anlauf gescheitert (14.07.). Für JSON/Configs BOM-frei
+  schreiben: `[System.IO.File]::WriteAllText($p, $txt, (New-Object System.Text.UTF8Encoding($false)))`.
+  Prüfen: erste 3 Bytes dürfen nicht `EF BB BF` sein. Dieselbe Falle trifft `.gitignore` — dort
+  macht ein BOM die **erste** Regel unwirksam.
+- ⛔ **Der Mount liefert veraltete Stände.** Eine frisch per DC auf C: geschriebene Datei kann über
+  den Sandbox-Mount noch die ALTE Version zeigen (14.07.: die neue `.plugin` erschien als
+  „kaputt/48462 Bytes", während Windows 52952 Bytes und heile Zip meldete; MD5 wichen ab).
+  **Windows (DC) ist maßgeblich.** Muss die Sandbox eine frische Datei lesen: unter **neuem
+  Dateinamen** kopieren, dann stimmt es — und per `Get-FileHash`/`md5sum` gegenprüfen.
 - **Kein Python auf dem Rechner:** `python`/`python3` sind nur Microsoft-Store-Aliase
   („Python wurde nicht gefunden"), `py` fehlt. Node ist echt da. Für Zip braucht es kein Python
   → nicht installieren.

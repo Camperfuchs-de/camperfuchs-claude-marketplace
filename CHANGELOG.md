@@ -9,6 +9,19 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## 0.12.1 â€” 14.07.2026
+
+- **BOM- und Validierungs-Fallen in `camperfuchs-plugin-sync` dokumentiert** â€” beide haben die
+  Installation von 0.12.0 real scheitern lassen: PowerShells `Set-Content -Encoding UTF8` schreibt
+  ein BOM (macht `plugin.json` ungueltig und die erste `.gitignore`-Regel unwirksam), und der
+  Installer prueft ALLE Skills, nicht nur die geaenderten (hier kippte eine 1262-Zeichen-
+  description von `nein-alternativen-anfragen`).
+- **Neuer Pflichtschritt 4b:** vor dem Veroeffentlichen jede SKILL.md mit einem echten YAML-Parser
+  pruefen (Laenge, Frontmatter, BOM) â€” nicht per Regex; eigene Regex-Checks lieferten Fehlalarme.
+- **Mount-Cache-Falle ergaenzt:** die Sandbox kann eine veraltete Datei zeigen, waehrend Windows
+  die korrekte hat. Windows ist massgeblich; frischer Dateiname umgeht den Cache.
+
+---
 ## 0.12.0 â€” 14.07.2026
 
 - **`camperfuchs-plugin-sync` ins Plugin migriert und geradegezogen.** Er beschrieb noch den
