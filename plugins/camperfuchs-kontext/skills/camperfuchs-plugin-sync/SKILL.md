@@ -1,136 +1,121 @@
 ---
 name: camperfuchs-plugin-sync
-description: >
-  Lebenszyklus des geteilten Camperfuchs-Wissens-Plugins camperfuchs-kontext (Repo
+description: >-
+  Lebenszyklus des geteilten Camperfuchs-Wissens-Plugins camperfuchs-kontext (Azure-Repo
   camperfuchs-claude-marketplace) — Stand-Check, neue Version bauen + veroeffentlichen, Bahtis
   Aenderungen einziehen. IMMER nutzen, wenn am geteilten Plugin gearbeitet wird — explizit
   („Plugin aktualisieren", „neue Plugin-Version bauen", „Skill ins Plugin aufnehmen",
   „Changelog-Eintrag", „Marketplace-Repo", „sind wir synchron", „hat Bahti was gepusht",
-  „Quellbaum") wie implizit: wenn eine DAUERHAFTE Erkenntnis entsteht (Architektur-Korrektur,
-  neuer Stack-Fakt, neue Konvention), proaktiv vorschlagen, sie ins Plugin zu nehmen. Enthaelt
-  Stammdaten (git-Klon F:\dev\cf-marketplace, SSH-Push), Versions-Konvention, den erprobten Loop
-  und die teuer gelernten Fallen: packen mit tar.exe (NICHT Compress-Archive), git laeuft NICHT
-  auf dem gemounteten Projektordner, kein Python auf dem Rechner, PowerShell-Einzeiler verlieren
-  $-Variablen. NICHT fuer das private Archiv cf-wissen — das ist bewusst getrennt.
-metadata:
-  type: skill
-  scope: camperfuchs-rentanda
+  „wie update ich das Plugin") wie implizit: wenn eine DAUERHAFTE Erkenntnis entsteht
+  (Architektur-Korrektur, neuer Stack-Fakt, neue Konvention), proaktiv vorschlagen, sie ins
+  Plugin zu nehmen. Der Weg ist browserlos per Azure-REST aus der Sandbox — kein Windows,
+  kein F:, kein PowerShell, kein Desktop Commander noetig. Enthaelt das komplette Rezept, die
+  Pflicht-Verifikation und die Fallen. NICHT fuer das private Archiv cf-wissen — das ist
+  bewusst getrennt und gehoert NIE hierher.
 ---
 
 # Camperfuchs-Plugin-Sync — geteiltes Wissen pflegen
 
 Björn und Bahti teilen Projektwissen über das Plugin `camperfuchs-kontext`. Quelle der Wahrheit
-ist das Azure-Repo; veröffentlicht wird per Versionsnummer + Changelog. Bauen ja — **committen
-erst auf Björns Ja** (bzw. auf direkten Auftrag).
+ist das Azure-Repo. Veröffentlicht wird per Versionsnummer + Changelog.
+
+**Bauen ja, pushen erst auf Björns Ja** (bzw. auf direkten Auftrag).
 
 ## Stammdaten
 
-- **Repo (Wahrheit):** `camperfuchs-claude-marketplace` im Azure-Projekt `camperfuchs`.
-- **git-Klon (hier wird gearbeitet):** `F:\dev\cf-marketplace`
-  ← `git@ssh.dev.azure.com:v3/camperfuchs/camperfuchs/camperfuchs-claude-marketplace`
-  **SCP-Syntax!** `ssh://…:v3` scheitert mit „Could not resolve hostname". Push per SSH-Key,
-  **kein PAT nötig**.
-- **Lokale Kopie** (Projektordner): `…\Camperfuchs Tech & Produkt\05_Skills-Automation\camperfuchs-marketplace`
-  — nur Lese-/Editier-Kopie für die Sandbox, **nicht** das Repo (git geht dort nicht, s.u.).
-  Nach dem Bauen mit dem Klon synchron halten.
+- **Repo (Wahrheit):** `camperfuchs-claude-marketplace`, Azure-Projekt `camperfuchs`,
+  Repo-ID `eac81030-ec6b-4522-8012-47c887e5c0f2`, Default-Branch `main`.
+- **Zugang:** PAT aus `.secrets/azure-devops-pat.txt`, `curl -u ":$PAT"`. Aus der Sandbox
+  erreichbar. `dev.azure.com`, nie `portal.azure.com`.
 - **Aufbau:** `.claude-plugin/marketplace.json` (Katalog `camperfuchs-team`),
   `plugins/camperfuchs-kontext/` (`.claude-plugin/plugin.json`, `skills/<name>/SKILL.md`),
   `CHANGELOG.md`, `camperfuchs-kontext.plugin`, `README.md`.
 - **Versions-Konvention:** Version steht NUR in
-  `plugins/camperfuchs-kontext/.claude-plugin/plugin.json` (nicht zusätzlich im
-  marketplace.json-Eintrag — maskiert sich sonst gegenseitig). Oberster CHANGELOG-Eintrag MUSS
-  dieselbe Nummer tragen, sonst gilt die Version als nicht veröffentlicht.
-- **Skills im Plugin (Stand 0.12.0):** agent-readiness, cache-purge, frontend-feature-shippen,
-  nein-alternativen-anfragen, plugin-sync, projekt, sammelanfrage, verfuegbarkeits-flow,
-  wp-502-debug.
-- **Wächter:** Scheduled Task `camperfuchs-plugin-stand-check` (8:30) macht Workflow A.
-- **Bahti:** b.sultanov@camperfuchs.de, installiert per `.plugin`-Button in Cowork; pusht eigene
-  Änderungen per git in den Quellbaum.
-- **Tabu:** Keine Tokens/Passwörter ins Plugin oder Repo. `.secrets/` nie anfassen.
-  **Das private Archiv `cf-wissen` gehört NIE hierher** (Umsatzzahlen/Partner-Interna).
+  `plugins/camperfuchs-kontext/.claude-plugin/plugin.json`, nicht zusätzlich im
+  marketplace.json-Eintrag. Oberster CHANGELOG-Eintrag MUSS dieselbe Nummer tragen, sonst gilt
+  die Version als nicht veröffentlicht.
+- **Lokale Kopie** (nur Lesen/Editieren, kein Repo):
+  `…\Camperfuchs Tech & Produkt\05_Skills-Automation\camperfuchs-marketplace`.
+  Nach dem Veröffentlichen nachziehen.
+- **Bahti:** b.sultanov@camperfuchs.de, installiert per `.plugin`-Datei in Cowork.
+- **Tabu:** Keine Tokens/Passwörter ins Plugin. `.secrets/` nie anfassen. `cf-wissen` (private
+  Umsatz-/Partner-Interna) gehört NIE hierher.
 
-## Workflow A — Stand-Check („sind wir synchron?")
+## Workflow A — Stand-Check
 
-1. Im Klon: `git fetch origin; git status -sb; git log --oneline -3`.
-2. Oberste Version in `CHANGELOG.md` == `version` in `plugin.json`? Sonst nicht sauber veröffentlicht.
-3. Bewerten: fremde Commits (nicht b.dunker) → Workflow C. Klon hinter origin → `git pull`.
-   Alles gleich → eine Zeile: „Plugin-Stand synchron (vX.Y.Z)."
+```bash
+PAT=$(tr -d ' \r\n' < .secrets/azure-devops-pat.txt)
+B="https://dev.azure.com/camperfuchs/camperfuchs/_apis/git/repositories/eac81030-ec6b-4522-8012-47c887e5c0f2"
+curl -s -u ":$PAT" "$B/commits?searchCriteria.\$top=5&api-version=7.0"
+```
+Version in `plugin.json` == oberster CHANGELOG-Eintrag? Alles von b.dunker → synchron melden,
+eine Zeile. Fremde Commits → Workflow C.
 
-## Workflow B — Neue Version bauen + veröffentlichen
+## Workflow B — Neue Version veröffentlichen (browserlos, erprobt 15.07.2026)
 
-Läuft **komplett per Desktop Commander auf `F:`**. Die Sandbox erreicht F: nicht — braucht sie
-aber auch nicht mehr (siehe tar-Falle).
-
-1. **Inhalt ändern:** `F:\dev\cf-marketplace\plugins\camperfuchs-kontext\skills\<name>\SKILL.md`.
-   Nur Dauerhaftes, keine Secrets, keine Tagesdetails. `description` **max 1024 Zeichen**.
-2. **Version hoch** in `plugin.json` + **CHANGELOG-Eintrag oben** (gleiche Nummer, Datum, Stichpunkte).
-3. **Packen mit `tar.exe`** (verifiziert 14.07., spec-konform):
-   ```powershell
-   cd F:\dev\cf-marketplace\plugins\camperfuchs-kontext
-   tar.exe -a -c -f F:\dev\_ck.zip *
-   Move-Item F:\dev\_ck.zip F:\dev\cf-marketplace\camperfuchs-kontext.plugin -Force
+1. **Baum ziehen.** `items?scopePath=/plugins/camperfuchs-kontext&recursionLevel=full` → Blob-Liste,
+   jede Datei per `download=true&$format=octetStream` in einen Arbeitsordner **im Sandbox-Home**
+   (`~/mp`), NICHT auf den Mount.
+   ⚠️ **Soll-Ist der Dateizahl vergleichen.** `while read` verschluckt die letzte Zeile ohne
+   Zeilenumbruch → `while IFS= read -r p || [ -n "$p" ]`. Fehlt eine Datei, löscht der Push die
+   Skill still aus dem Plugin.
+2. **Inhalt ändern.** Nur Dauerhaftes, keine Secrets, keine Tagesdetails.
+3. **Version hoch** in `plugin.json` — **byte-genau per replace auf den Bytes**, nicht die Datei
+   neu schreiben (sonst gehen Formatierung/Encoding kaputt):
+   ```python
+   b=open(p,'rb').read(); assert b.count(b'"version":  "0.14.0"')==1
+   open(p,'wb').write(b.replace(b'"version":  "0.14.0"', b'"version":  "0.15.0"'))
    ```
-4. **Zip verifizieren** (nicht annehmen): Integrität ok, **0 Backslash-Pfade**,
-   `.claude-plugin/plugin.json` auf oberster Ebene, Version + Skill-Zahl stimmen.
-4b. **ALLE Skills validieren, nicht nur die geänderten** — der Installer prüft jede einzelne und
-   bricht beim ersten Fehler ab (14.07. zweimal passiert). Je SKILL.md: `description` **≤1024
-   Zeichen**, gültiges YAML-Frontmatter, `name` gesetzt, kein BOM. **Mit einem echten YAML-Parser
-   prüfen, nicht per Regex** — eigene PowerShell-Regexe lieferten drei Fehlalarme (gequotete
-   `description: "…"` als „kaputt", korrekte Längen als „zu lang"). Rezept: `.plugin` unter einem
-   **frischen Dateinamen** in den Projektordner kopieren (Mount-Cache!), dann in der Sandbox
-   entpacken und mit `yaml.safe_load` je SKILL.md prüfen.
-5. **Secret-Scan** über den Baum: `cfut_`, `dop_v1_`, `ghp_`, `github_pat_`, `sk-ant-`, `AIza`,
-   `BEGIN … PRIVATE KEY`, 52-stellige Alnum → muss leer sein.
-6. **Commit + Push:** `git add …; git commit -m "vX.Y.Z: …"; git push origin main`.
-   Die SSH-Meldung „WARNING: connection is not using a post-quantum key exchange algorithm" ist
-   **Rauschen**, kein Fehler (PowerShell stuft sie nur als NativeCommandError ein).
-7. **Lokale Kopie** im Projektordner nachziehen (damit die Sandbox denselben Stand liest).
-8. Björn Bescheid: neue Version + „einmal Plugin updaten" (1 Klick, bewusst manuell = Sicherheitsgrenze).
+4. **CHANGELOG-Eintrag oben** einfügen (vor dem ersten `## `), gleiche Nummer + Datum.
+5. **ALLE Skills validieren, nicht nur die geänderten** — der Installer prüft jede und bricht
+   beim ersten Fehler ab. Mit **echtem YAML-Parser** (`yaml.safe_load`), nicht per Regex:
+   `name` gesetzt, `description` ≤ 1024 Zeichen, kein BOM (`raw[:3] != b'\xef\xbb\xbf'`).
+6. **Secret-Scan** über den Baum: `cfut_|dop_v1_|ghp_|github_pat_|sk-ant-|AIza|BEGIN … PRIVATE KEY`
+   plus 52-stellige Alnum. ⚠️ **Ein Treffer in `camperfuchs-plugin-sync/SKILL.md` ist ein
+   Fehlalarm** — das ist genau diese Zeile, die die Muster auflistet. Fundstelle im Kontext
+   ansehen, nicht blind Alarm schlagen.
+7. **`.plugin` packen** mit Python-`zipfile` in der Sandbox, Pfade mit Forward-Slashes:
+   `z.write(rel, rel.replace(os.sep,'/'))`.
+8. **Zip verifizieren, nicht annehmen:** `testzip()` ok, **0 Backslash-Pfade**,
+   `.claude-plugin/plugin.json` auf oberster Ebene, Version stimmt, Skill-Zahl stimmt,
+   jede `SKILL.md` parst.
+9. **Push in EINEM Commit** per `pushes`-API (`refUpdates.oldObjectId` = aktueller main-HEAD):
+   SKILL.md als `rawtext`, die `.plugin` als `base64encoded`.
+10. **Gegenprobe gegen das REPO**, nicht gegen die lokale Kopie: `.plugin`, `plugin.json` und
+    `CHANGELOG.md` von `main` zurückladen und Schritt 8 wiederholen.
+11. **Lokale Kopie** im Projektordner nachziehen.
+12. **Björn Bescheid:** neue Version + die `.plugin` per `present_files` geben. Er installiert
+    mit einem Klick (Einstellungen → Capabilities). Bewusst manuell = Sicherheitsgrenze.
 
 ## Workflow C — Bahti-Änderungen einziehen
 
-1. `git fetch origin; git log --oneline origin/main -5` → fremde Commits ansehen.
-2. Diff reviewen (fachlich plausibel? keine Secrets?), Björn in 1–2 Sätzen melden.
-3. `git pull`, dann Workflow B ab Schritt 2 — außer Bahti hat Version+Changelog schon gepflegt,
-   dann nur `.plugin` neu packen + pushen.
+Commits von b.sultanov prüfen (fachlich plausibel, keine Secrets), Björn in 1–2 Sätzen melden,
+dann Workflow B ab Schritt 2 — außer Bahti hat Version+Changelog schon gepflegt, dann nur
+`.plugin` neu packen + pushen.
 
-## Fallen (teuer gelernt, nicht erneut ausprobieren)
+## Fallen
 
-- **git funktioniert NICHT auf dem gemounteten Projektordner** (14.07. getestet): `git init`
-  scheitert mit `bad config line 1` + `unable to unlink '.git/config.lock': Operation not
-  permitted`; `rm -rf` wird dort ebenfalls verweigert. Ein Repo kann NIE im Projektordner liegen.
-  Vorschläge à la „der Projektordner wird selbst der Klon, dann pusht die Sandbox autonom" sind
-  tot — nicht nochmal vorschlagen.
-- **Zip nicht auf dem Mount bauen:** `zip` schreibt dort eine kaputte Datei
-  („End-of-central-directory signature not found"), und ein blindes `cp` überschreibt die noch
-  gute `.plugin` mit Schrott. Außerdem meldet `du -h` auf dem Mount fälschlich `0` — mit
-  `ls -la`/`stat`/`wc -c` gegenchecken.
-- **`tar.exe` ist der Weg**, NICHT `Compress-Archive` (PS 5.1) und NICHT
-  `[IO.Compression.ZipFile]::CreateFromDirectory` — die schreiben **Backslash-Pfade** und
-  verletzen die ZIP-Spec. Das `*`-Glob nimmt `.claude-plugin` mit (kein Dot-Folder-Problem).
-- ⛔ **PowerShell `Set-Content -Encoding UTF8` schreibt ein BOM** (PS 5.1) → `plugin.json` wird
-  ungültig, Installation scheitert mit „Invalid JSON in plugin.json: Unexpected UTF-8 BOM".
-  Genau so ist v0.12.0 beim ersten Anlauf gescheitert (14.07.). Für JSON/Configs BOM-frei
-  schreiben: `[System.IO.File]::WriteAllText($p, $txt, (New-Object System.Text.UTF8Encoding($false)))`.
-  Prüfen: erste 3 Bytes dürfen nicht `EF BB BF` sein. Dieselbe Falle trifft `.gitignore` — dort
-  macht ein BOM die **erste** Regel unwirksam.
-- ⛔ **Der Mount liefert veraltete Stände.** Eine frisch per DC auf C: geschriebene Datei kann über
-  den Sandbox-Mount noch die ALTE Version zeigen (14.07.: die neue `.plugin` erschien als
-  „kaputt/48462 Bytes", während Windows 52952 Bytes und heile Zip meldete; MD5 wichen ab).
-  **Windows (DC) ist maßgeblich.** Muss die Sandbox eine frische Datei lesen: unter **neuem
-  Dateinamen** kopieren, dann stimmt es — und per `Get-FileHash`/`md5sum` gegenprüfen.
-- **Kein Python auf dem Rechner:** `python`/`python3` sind nur Microsoft-Store-Aliase
-  („Python wurde nicht gefunden"), `py` fehlt. Node ist echt da. Für Zip braucht es kein Python
-  → nicht installieren.
-- **PowerShell-Einzeiler über DC verlieren `$`-Variablen** und scheitern an escapten Quotes
-  („Die Zeichenfolge hat kein Abschlusszeichen", „Nach foreach fehlt ein Variablenname").
-  → `.ps1` in den outputs-Ordner schreiben und mit
-  `powershell -NoProfile -ExecutionPolicy Bypass -File …` starten.
-- **`git add -A` erzeugt hunderte CRLF-Warnzeilen** und sprengt den Tool-Output; mit
-  `$ErrorActionPreference='Stop'` bricht das Skript sogar ab. → im Repo `core.autocrlf false` +
-  vor den git-Aufrufen auf `Continue` schalten, Ausgabe nach `Out-Null`.
-- **Account-Skills sind read-only** (Settings → Capabilities). Was selbst gepflegt werden soll,
-  MUSS ins Plugin. Liegt eine Skill doppelt (Account + Plugin), erscheint sie doppelt → die
-  Account-Version einmalig löschen.
-- **Der alte Browser-Upload-Weg ist obsolet** (konnte nur flache Dateien, keine Unterordner).
-  Nicht wiederbeleben. `dev.azure.com` direkt, nie `portal.azure.com`.
+- **`while read` + letzte Zeile ohne Zeilenumbruch** → Datei fehlt im Baum → Skill verschwindet
+  still aus dem Plugin. Immer Soll-Ist der Dateizahl. (15.07. fast passiert mit `wp-502-debug`.)
+- **Secret-Scan-Fehlalarm** in dieser Skill (siehe Schritt 6).
+- **Nichts auf dem Mount bauen.** Dort schreibt `zip` kaputte Dateien, `du -h` lügt mit `0`, und
+  der Mount liefert veraltete Stände. Arbeitsordner = Sandbox-Home.
+- **git funktioniert NICHT auf dem gemounteten Projektordner** (`bad config line 1`,
+  `unable to unlink '.git/config.lock'`). Ein Repo kann dort NIE liegen. Vorschläge à la „der
+  Projektordner wird selbst der Klon" sind tot — nicht nochmal vorschlagen.
+- **Account-Skills sind read-only** (Einstellungen → Capabilities). Was selbst gepflegt werden
+  soll, MUSS ins Plugin. Liegt eine Skill doppelt (Account + Plugin), erscheint sie doppelt →
+  die Account-Version einmalig löschen.
+
+## Alt-Weg über Windows/`F:` (nur im Notfall)
+
+Klon `F:\dev\cf-marketplace` ← `git@ssh.dev.azure.com:v3/camperfuchs/camperfuchs/camperfuchs-claude-marketplace`
+(**SCP-Syntax**, `ssh://…:v3` scheitert; Push per SSH-Key, kein PAT). Dann gilt: packen **nur mit
+`tar.exe -a -c -f`** (NICHT `Compress-Archive` / `ZipFile::CreateFromDirectory` — die schreiben
+Backslash-Pfade); **`Set-Content -Encoding UTF8` schreibt ein BOM** und zerstört `plugin.json` →
+`[System.IO.File]::WriteAllText($p,$txt,(New-Object System.Text.UTF8Encoding($false)))`;
+PowerShell-Einzeiler verlieren `$`-Variablen → `.ps1` schreiben und mit
+`powershell -NoProfile -ExecutionPolicy Bypass -File …` starten; `git add -A` erzeugt hunderte
+CRLF-Warnungen → `core.autocrlf false`. Die SSH-Meldung „not using a post-quantum key exchange"
+ist Rauschen. **Kein Python auf dem Rechner** (nur Store-Aliase), Node ist echt da.
+Der REST-Weg oben umgeht diese Fallen alle — deshalb ist er der Standard.

@@ -9,27 +9,19 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
-## 0.15.0 --- 15.07.2026
+## 0.15.0 (15.07.2026)
 
-- **Neue Skill `camperfuchs-alternativ-angebot`.** Alternativ-Angebote fuer Mietinteressenten, wenn
-  ein Vermieter NEIN sagt: freie Fahrzeuge selbst finden, Deeplinks mit Zeitraum bauen, Gmail-Entwurf
-  im Card-Design. Kommt aus dem Account-Bereich ins Plugin, damit sie gepflegt werden kann
-  (Account-Skills sind read-only). Die Account-Version bitte einmalig loeschen, sonst doppelt.
-- **Pflicht-Filter Personenzahl** (Anlass: Fall vom 15.07.2026). Erwachsene + Kinder stehen im Feld
-  `Bemerkung` der Formular-Mail (`Anzahl Erwachsene: 2 | Anzahl Kinder: 1`). Die Suche-API hat keinen
-  Personen-Parameter -> lokal auf `maxSeats >= Personen` UND `maxBeds >= Personen` filtern. Ohne das
-  rutschen Fahrzeuge mit zu wenig Betten durch (VW Grand California 680 = 2/2, Poessl Summit
-  Shine 600 = 3 Sitze/2 Betten).
-- **Zwei Suchen statt einer:** ab Vermieter-Standort UND ab Kundenwohnort. Der Suchradius ist
-  entfernungsbasiert, die Trefferzahl unterscheidet sich stark (80 ab Ulm vs. 16 ab Coburg).
-- **Card-Design ist Standardlayout** fuer Kunden-/Vermieter-Mails, nicht die Signatur-Vorlage.
-- **Kalender-Gegencheck neu:** steht das abgesagte Fahrzeug in der Suche noch als frei, ist der
-  Vermieter-Kalender ungepflegt -> Hinweis in die Vermietermail. Ergaenzt `camperfuchs-kalender-sperre`
-  aus 0.14.0: dort sperrt der Vermieter selbst, hier faellt es uns beim Angebot auf.
-- **Fahrzeug nicht im Bestand:** `GET /api/V1/articles/by-landlord?email={vermieter}` pruefen, dann
-  dem Vermieter aktiv anbieten, dass wir die Einrichtung uebernehmen.
-- Falle dokumentiert: die Suche-API **ignoriert unbekannte Query-Parameter still** (`?q=`, `?search=`
-  liefern alle Treffer statt zu filtern) -> immer `totalElements` gegenpruefen.
+- **`camperfuchs-plugin-sync` auf den REST-Weg umgeschrieben.** Veroeffentlichen laeuft jetzt
+  komplett browserlos aus der Sandbox per Azure-REST: kein Windows, kein `F:`, kein PowerShell,
+  kein Desktop Commander. Damit entfallen die halbe Fallensammlung (BOM durch
+  `Set-Content`, Backslash-Pfade durch `Compress-Archive`, `$`-Verlust in PS-Einzeilern,
+  CRLF-Flut bei `git add -A`, veraltete Mount-Staende) — sie stehen nur noch als Notfall-Anhang
+  drin, falls doch jemand ueber den Klon arbeitet.
+- Neue Falle dokumentiert: `while read` verschluckt die letzte Zeile ohne Zeilenumbruch. Beim
+  Ziehen des Plugin-Baums fehlte dadurch fast `wp-502-debug/SKILL.md` — ein Push haette die
+  Skill still aus dem Plugin geloescht. Deshalb Pflicht: Soll-Ist der Dateizahl vergleichen.
+- Ebenfalls dokumentiert: der Secret-Scan schlaegt immer in dieser Skill an, weil sie die
+  Suchmuster selbst auflistet. Fehlalarm, nicht blind Alarm schlagen.
 
 ## 0.14.0 (15.07.2026)
 
