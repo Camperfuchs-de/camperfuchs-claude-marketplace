@@ -120,12 +120,41 @@ Ergebnis: Quellbaum 11 Skills, ausgeliefertes Paket 10. Die Skill war still weg,
 
 Pflicht vor jedem Bauen:
 
-1. `git fetch` + `git log HEAD..origin/main` — liegt dort schon eine neuere Version, erst einziehen.
-2. Version IMMER erst nach dem Einziehen bestimmen, nie vorher festlegen.
-3. **Soll-Ist der Skill-Zahl vergleichen**: Ordner im Quellbaum vs. `skills/*/SKILL.md` im gebauten
+1. **Lock setzen** (siehe unten). Wer den Lock nicht bekommt, baut nicht.
+2. `git fetch` + `git log HEAD..origin/main` — liegt dort schon eine neuere Version, erst einziehen.
+3. Version IMMER erst nach dem Einziehen bestimmen, nie vorher festlegen.
+4. **Soll-Ist der Skill-Zahl vergleichen**: Ordner im Quellbaum vs. `skills/*/SKILL.md` im gebauten
    `.plugin`. Weichen sie ab, ist etwas rausgefallen. Nie ungeprüft pushen.
-4. Fremden Changelog-Eintrag mit gleicher Nummer nicht überschreiben, sondern eigenen Eintrag mit
+5. Fremden Changelog-Eintrag mit gleicher Nummer nicht überschreiben, sondern eigenen Eintrag mit
    der nächsten Nummer anlegen.
+6. **Lock freigeben**, sobald der Push durch ist — auch wenn abgebrochen wurde.
+
+### Das Lock-Rezept (`PLUGIN-LOCK.md` im Repo-Wurzelverzeichnis)
+
+Der Trick: **git push ist atomar.** Zwei Sessions können nicht beide dieselbe Lock-Datei anlegen und
+pushen — die zweite wird abgelehnt. Damit gewinnt genau eine, ohne dass jemand koordinieren muss.
+
+**Lock nehmen:**
+
+```bash
+git fetch origin && git merge --ff-only origin/main
+# Liegt PLUGIN-LOCK.md schon da und ist der Zeitstempel < 30 min alt?
+#   -> STOPP. Nicht bauen. Björn melden: "Andere Session pflegt gerade das Plugin, seit HH:MM."
+#   -> Ist er älter als 30 min, ist es eine Leiche: übernehmen und im Commit vermerken.
+printf 'gehalten seit: %s\nzweck: <was gebaut wird>\n' "$(date -Iseconds)" > PLUGIN-LOCK.md
+git add PLUGIN-LOCK.md && git commit -m "lock: Plugin-Pflege" && git push origin main
+# Push abgelehnt = eine andere Session war schneller -> git reset --hard origin/main, STOPP.
+```
+
+**Lock freigeben** (im selben Commit wie die neue Version, spart eine Runde):
+
+```bash
+git rm PLUGIN-LOCK.md
+git add ... && git commit -m "vX.Y.Z: ..." && git push origin main
+```
+
+Der Lock ist eine Höflichkeitsbremse gegen die eigenen Parallel-Sessions, kein Sicherheitsmechanismus.
+Er kostet 20 Sekunden und hat am 15.07.2026 gefehlt, als eine Skill still aus dem Paket fiel.
 
 ## Fallen
 

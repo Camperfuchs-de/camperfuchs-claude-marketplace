@@ -9,6 +9,18 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## 0.18.0 --- 15.07.2026
+
+- **`camperfuchs-plugin-sync`: Lock-Rezept gegen Parallel-Sessions.** Vor dem Bauen wird
+  `PLUGIN-LOCK.md` im Repo-Wurzelverzeichnis angelegt und gepusht. Weil `git push` atomar ist,
+  gewinnt genau eine Session; die andere bekommt eine Ablehnung und stoppt, statt blind
+  weiterzubauen. Lock juenger als 30 min = andere Session arbeitet, STOPP. Aelter = Leiche,
+  uebernehmen. Freigabe passiert im selben Commit wie die Version (`git rm PLUGIN-LOCK.md`).
+  Dieses Rezept wurde beim Bauen von 0.18.0 selbst benutzt.
+- Hintergrund: am 15.07. gab es an einem Abend zweimal 0.14.0 und zweimal 0.15.0, und einmal ist
+  eine fertige Skill still aus dem ausgelieferten Paket gefallen. Die Soll-Ist-Pruefung aus 0.16.0
+  faengt den Schaden, der Lock verhindert ihn.
+
 ## 0.17.0 (2026-07-15)
 
 - Neue Skill `camperfuchs-memory-aufraeumen`: Orphan-Triage, MEMORY.md-Kompaktierung (SUBINDEX-Muster) und sync-festes _archiv-Rezept fuer die Memory-Spaces (cf-shared-memory-sync stellt Geloeschtes wieder her, sieht aber keine Unterordner).
