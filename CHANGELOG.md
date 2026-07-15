@@ -9,6 +9,18 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## 0.19.0 --- 15.07.2026
+
+- **WhatsApp-Freitext von Vermietern wird klassifiziert und geroutet** (Szenario 6277699, Route 2),
+  dokumentiert in `camperfuchs-verfuegbarkeits-flow`: Haiku entscheidet ja / nein / alternative /
+  rueckfrage / auto_antwort / unklar. ja und nein laufen automatisch in den bestehenden
+  confirm-Webhook, der Rest landet als Mail bei Bjoern, Auto-Antworten werden geschluckt.
+  Vorher fielen Freitext-Antworten still auf den Boden (Fall ginbie: 9 Tage).
+- Neue Fallen: `toJSON` existiert in Make NICHT (Escaping nur ueber `json:CreateJSON` +
+  Datenstruktur), String-Zahlen im CreateJSON-Mapper geben Anthropic-400, der WhatsApp-Hook ist
+  `web-shared` und hat keine URL (nur mit echter Nachricht testbar).
+- `camperfuchs-kalender-sperre`: Stufe B ist nicht mehr offen, Verweis gesetzt.
+
 ## 0.18.0 --- 15.07.2026
 
 - **`camperfuchs-plugin-sync`: Lock-Rezept gegen Parallel-Sessions.** Vor dem Bauen wird

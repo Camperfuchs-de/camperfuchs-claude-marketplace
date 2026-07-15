@@ -113,6 +113,6 @@ detached HEAD und weicht ohnehin vom Repo ab.
 
 ## Offen
 
-- Stufe B der WhatsApp-Freitext-Erkennung (Haiku-Klassifizierung) hängt thematisch dran.
+- Die WhatsApp-Freitext-Erkennung (Haiku) ist seit 15.07.2026 live → `camperfuchs-verfuegbarkeits-flow`.
 - Kein „Fahrzeug ganz offline nehmen"-Button — bei „haben wir nicht mehr" (Fall ginbie/MEG)
   ist Sperren nur ein Pflaster.

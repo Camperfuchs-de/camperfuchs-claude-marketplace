@@ -78,6 +78,39 @@ Klickt der Vermieter **Rückfrage**, kam früher nur die reine Bestätigungsseit
 
 Alternativ Chrome-`navigate` auf die Hook-URL (gleiche Stufen). **Mail-Render von 5482694 (M2) ist NICHT sicher selbst testbar** — ein echter Lauf würde die Verfügbarkeits-Mail an einen echten Vermieter schicken. Daher: HTML offline rendern + Blueprint zurücklesen, finale Live-Darstellung an der NÄCHSTEN echten Anfrage prüfen (`executions_list`). ⚠️ `scenarios_run` mit `data` mappt NICHT auf die Webhook-Felder (`{{1.x}}`) → für den Test echten HTTP-Request (curl/Chrome) nutzen, nicht `scenarios_run`.
 
+## WhatsApp-Freitext-Antworten (Szenario 6277699, LIVE seit 15.07.2026)
+
+Vermieter antworten oft im Freitext statt Buttons zu tippen. Das fiel bis 15.07. **still auf den
+Boden** (Fall ginbie: 9 Tage keine Reaktion), weil 6277699 nur auf `messages[1].type = button`
+filterte. Zusätzlich blieb `status` in DS 131528 auf `rueckfrage` → auch der Nudge (6235553,
+sucht `status = offen`) griff nicht mehr.
+
+**Route 2 in 6277699 (`type = text`):** GetRecord DS **137664** (Key = Mobilnr ohne `+`, wird nur
+beim Nudge befüllt) → **json:CreateJSON** (Datenstruktur **493593**) → Haiku
+(`claude-haiku-4-5`, max_tokens 8, temperature 0, Ein-Wort-Antwort) → Router:
+
+| Klassifikation | Aktion |
+|---|---|
+| `ja` / `nein` | ruft den confirm-Webhook `tu2xumx8…` → identisch zum Button-Klick, inkl. Kundenentwurf |
+| `alternative` / `rueckfrage` / `unklar` | Mail an Björn mit Einschätzung, Wortlaut, wa.me-Link |
+| `auto_antwort` | nichts (WhatsApp-Business-Begrüßungen erzeugen kein Rauschen) |
+
+**Prompt-Kern:** Das Modell braucht den KONTEXT (angefragtes Fahrzeug + Zeitraum), sonst ist
+„Wir haben nur unseren MF" nicht einzuordnen. `ja`/`nein` NUR bei ausdrücklicher Aussage zum
+ANGEFRAGTEN Fahrzeug, im Zweifel `unklar`. 9/10 getestet, Abweichung in die sichere Richtung.
+Kosten ~0,50 USD / 1000 Antworten.
+
+**Fallen (teuer gelernt 15.07.):**
+- ⛔ **`toJSON` gibt es in Make NICHT.** Freitext sauber ins JSON nur über `json:CreateJSON` +
+  Datenstruktur.
+- ⛔ **CreateJSON-Mapper-Werte als String (`"8"`/`"0"`) → Anthropic 400** „max_tokens: Input
+  should be a valid integer". Müssen echte JSON-Zahlen sein.
+- ⛔ **Hook 3270589 ist `web-shared` und hat KEINE URL** → man kann nichts hineinposten, der
+  einzige Test ist eine echte WhatsApp. Rezept: Testnummer in DS 137664 eintragen, Template per
+  Wegwerf-Szenario an die Nummer senden (öffnet den richtigen Chat), dort Freitext antworten,
+  Testeintrag danach löschen.
+- ⚠️ **Ops-Zahl verrät die Route:** 3 = Button-Route, 5 = Freitext-Route komplett durchgelaufen.
+
 ## Gotchas (teuer gelernt)
 
 - **Scanner-Prefetch ist REAL:** 04.06. 18:05 riefen Provider-Scanner 18 Sek nach Versand alle 3 Button-Links ab (5 Hits/11 Sek) → deshalb der Zwei-Stufen-Flow. NIE auf einstufig zurückbauen. Scanner folgen Mail-Links, klicken aber keine Buttons/Formulare auf Seiten.
