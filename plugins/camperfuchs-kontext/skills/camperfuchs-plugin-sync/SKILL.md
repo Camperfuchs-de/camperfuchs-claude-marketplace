@@ -93,6 +93,40 @@ Commits von b.sultanov prüfen (fachlich plausibel, keine Secrets), Björn in 1�
 dann Workflow B ab Schritt 2 — außer Bahti hat Version+Changelog schon gepflegt, dann nur
 `.plugin` neu packen + pushen.
 
+## Verwandt: Auto-Memory-Sync (Björns Seite, gleiche Denkfalle)
+
+Björns Auto-Memory-Dateien gleicht der Windows-Task `cf-shared-memory-sync` alle 6h zwischen drei
+Spaces und `Shared-Claude-Memory\` ab (`05_Skills-Automation\sync-shared-memory.ps1`), bewusst
+**ohne Löschen**. Daraus folgt (15.07.2026 verifiziert):
+
+- **Eine Memory-Datei zu löschen bringt nichts** — sie kommt beim nächsten Lauf zurück, mit
+  Original-Zeitstempel.
+- **Sie mit einem Stub zu überschreiben ist schädlich** — der Stub bekommt den neuesten
+  Zeitstempel, der Sync verteilt ihn in die anderen Spaces und zerstört dort den Inhalt.
+- **Aufräumen läuft über den Index, nicht über die Dateien.** `MEMORY.md` wird nie synchronisiert.
+  Nicht mehr Gebrauchtes kommt aus dem Index raus, die Datei bleibt liegen. Zu viel Gutes für den
+  Index → thematische `index_*.md`-Subindexe.
+
+Merksatz für beide Systeme: **die Wahrheit liegt im Quellbaum bzw. im Index, nicht in der lokalen
+Kopie.** Wer die Kopie anfasst, um aufzuräumen, macht es meistens kaputt.
+
+## Parallele Sessions — Versionsnummer VOR dem Bauen prüfen
+
+Björn lässt mehrere Sessions gleichzeitig laufen, alle committen als `b.dunker`. Am 15.07.2026 ist
+deshalb zweimal dieselbe Nummer vergeben worden (zwei verschiedene v0.14.0, dann zwei v0.15.0), und
+einmal ist es richtig teuer geworden: Session B baute das `.plugin` aus einem Baum ohne die frisch
+gepushte Skill `camperfuchs-alternativ-angebot` und überschrieb den Changelog-Eintrag von Session A.
+Ergebnis: Quellbaum 11 Skills, ausgeliefertes Paket 10. Die Skill war still weg, ohne Fehler.
+
+Pflicht vor jedem Bauen:
+
+1. `git fetch` + `git log HEAD..origin/main` — liegt dort schon eine neuere Version, erst einziehen.
+2. Version IMMER erst nach dem Einziehen bestimmen, nie vorher festlegen.
+3. **Soll-Ist der Skill-Zahl vergleichen**: Ordner im Quellbaum vs. `skills/*/SKILL.md` im gebauten
+   `.plugin`. Weichen sie ab, ist etwas rausgefallen. Nie ungeprüft pushen.
+4. Fremden Changelog-Eintrag mit gleicher Nummer nicht überschreiben, sondern eigenen Eintrag mit
+   der nächsten Nummer anlegen.
+
 ## Fallen
 
 - **`while read` + letzte Zeile ohne Zeilenumbruch** → Datei fehlt im Baum → Skill verschwindet

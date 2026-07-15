@@ -9,6 +9,24 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## 0.16.0 --- 15.07.2026
+
+- ⚠️ **Reparatur: `camperfuchs-alternativ-angebot` war im 0.15.0-Paket gar nicht enthalten.** Die
+  Skill wurde in einer parallelen Session gebaut und gepusht (Commit 228e6fc, Quellbaum ok), eine
+  zweite Session baute danach das `.plugin` aus einem Baum ohne sie und überschrieb gleichzeitig
+  deren Changelog-Eintrag. Quellbaum 11 Skills, Paket 10, kein Fehler, keine Warnung. Ab jetzt im
+  Paket. Wer 0.15.0 installiert hat: bitte auf 0.16.0 aktualisieren.
+- **`camperfuchs-plugin-sync`: neue Pflichtregel „Parallele Sessions".** Vor jedem Bauen `git fetch`
+  + `git log HEAD..origin/main`, Version erst DANACH bestimmen, und Soll-Ist der Skill-Zahl
+  vergleichen (Ordner im Quellbaum vs. `skills/*/SKILL.md` im gebauten `.plugin`). Fremden
+  Changelog-Eintrag gleicher Nummer nie überschreiben, sondern die nächste Nummer nehmen.
+  Björn lässt mehrere Sessions parallel laufen, alle committen als `b.dunker` — heute gab es
+  deshalb zweimal 0.14.0 und zweimal 0.15.0.
+- **`camperfuchs-plugin-sync`: Auto-Memory-Sync ergänzt.** `cf-shared-memory-sync` gleicht Björns
+  Memory-Dateien alle 6h über drei Spaces ab, bewusst ohne Löschen. Eine Memory-Datei zu löschen
+  bringt daher nichts (kommt zurück), sie mit einem Stub zu überschreiben zerstört den Inhalt in
+  den anderen Spaces. Aufräumen läuft über den Index, nicht über die Dateien.
+
 ## 0.15.0 (15.07.2026)
 
 - **`camperfuchs-plugin-sync` auf den REST-Weg umgeschrieben.** Veroeffentlichen laeuft jetzt
