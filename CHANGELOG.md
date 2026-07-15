@@ -9,6 +9,19 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## 0.14.0 (15.07.2026)
+
+- **Neu: `camperfuchs-kalender-sperre`.** Sagt ein Vermieter auf eine Mietanfrage NEIN, kann er
+  den Zeitraum jetzt auf der Danke-Seite per Klick selbst im Kalender sperren
+  (Make 6578305 -> key-gated `/api/automation/block` auf srv2). Bewusst mit Klick statt
+  Automatik, weil ein NEIN nicht zwingend "belegt" heisst.
+- Enthaelt die Legacy-Fakten, die uns Stunden gekostet haben: `domainAdmin` ist fuer Camperfuchs
+  eine Sackgasse (`stations.domain` ist bei 3.553 Stationen NULL), `articles.id` ist varchar und
+  identisch mit den IDs der neuen Such-API, Sperre = Buchung mit `type = 6`.
+- Make-Fallen: `builtin:Ignore` als onerror beendet die ganze Route (auch den `WebhookRespond`),
+  Router-Fallback-Routen brauchen einen eigenen Filter, und Fahrzeug-Titel per
+  `split(...; " [https")` schneiden statt per Regex.
+
 ## 0.13.0 --- 14.07.2026
 
 - **`camperfuchs-projekt`: Image-Tags sind jetzt pro Umgebung getrennt (PR #1365).** staging und
