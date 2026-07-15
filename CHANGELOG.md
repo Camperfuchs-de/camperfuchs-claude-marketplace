@@ -9,6 +9,25 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## 0.13.0 --- 14.07.2026
+
+- **`camperfuchs-projekt`: Image-Tags sind jetzt pro Umgebung getrennt (PR #1365).** staging und
+  prod pushten bis dahin BEIDE den Tag `<repo>:<SHA>` in denselben Cluster -> der spaetere Build
+  ueberschrieb das Image des frueheren, Nodes mit gecachtem Image zogen nicht neu -> prod lief auf
+  zwei Images unter einem Tag, die Next-`buildId` flippte, Chunks gingen sporadisch ins 404.
+  Passiert am 07.07. und erneut am 14.07. Jetzt: `-staging` / `-prod`-Suffix, verifiziert ueber
+  zwei aufeinanderfolgende Deploys (buildId stabil ohne Eingriff).
+- **Zwei teuer bezahlte Fehldiagnosen dokumentiert:** (1) "zwei Builds desselben Commits sind die
+  Ursache" -- nein, es flippte auch bei nur EINEM prod-Build. (2) `kubectl rollout restart`
+  konvergiert -- nein, die Nodes cachen den Tag; nur ein Digest-Pin half.
+- **Deploy-Diagnose-Tell ergaenzt:** buildId zaehlen statt Code verdaechtigen; Pod-Drift zeigt sich
+  nur an `imageID` (Digest), nicht am Tag. Ausserdem: Azure nimmt die `ci/*.yml` aus dem Branch,
+  der gebaut wird -- Pipeline-Fixes wirken erst, wenn sie im jeweiligen Branch liegen.
+- **HPA-Fakt ergaenzt:** frontend/backend haben eine HPA (min 2, max 4, Ziel 80% CPU).
+  `replicaCount` im Chart ist nur der Startwert; ein nach dem Deploy kurz haengender
+  `Pending`-Pod ist Scale-Up-Nachwehen, kein Defekt.
+
+---
 ## 0.12.1 â€” 14.07.2026
 
 - **BOM- und Validierungs-Fallen in `camperfuchs-plugin-sync` dokumentiert** â€” beide haben die
