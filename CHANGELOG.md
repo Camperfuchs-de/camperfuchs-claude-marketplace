@@ -9,6 +9,10 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## 0.21.0 — 2026-07-18
+
+- NEU: Skill `camperfuchs-legacy-backend` ins Plugin aufgenommen (Migration aus Account-Skill) — mit korrigierter KERN-REGEL: NIE ab Azure-`master` patchen/deployen; immer erst die Live-Datei von srv2 ziehen und mit Diff-Guard patchen. Hintergrund: gemessener Drift 18.07.2026 — 64/561 Dateien in `/backend/src` weichen zwischen master (Stand 2022) und srv2-Live (2018er-Basis + In-Place-Patches) ab; srv2-Git ist ein Remote-loses Fossil, Wahrheit = Datei auf der Platte. Zudem korrigiert: SSH auf srv2 und Azure-REST (auch Projekt `Old Camperfuchs`) gehen direkt aus der Sandbox.
+
 ## 0.20.0 — 2026-07-16
 
 - `camperfuchs-verfuegbarkeits-flow`: Kontaktdaten-Maskierung bei Anfrage-Fahrzeugen dokumentiert (LIVE 15.07., prod-verifiziert) — Spring office-Routing (PR #1367, Marker-Zeilen), 5482694 Parser M25 + Router M27/Route B (M26 ohne Telefon/Buttons/mieter-Param, Trigger -subject:"TEST SYSTEM"), 6030776 Datastore-Fallback fuer mieter (M5/M10/M22/M60) + neue Kontaktdaten-Mail M60 nach JA. Inkl. K8s-Pending-Rollout-Falle ("Deploy gruen != neuer Code live") und Test-Rezept.
