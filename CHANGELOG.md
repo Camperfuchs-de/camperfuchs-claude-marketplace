@@ -9,6 +9,10 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## 0.22.0 - 2026-07-18
+
+- `camperfuchs-projekt`: Runbook-Nugget "Make.com - Szenario deaktiviert (Fehler / Gift-Bundle)" ergaenzt. Ein instant-Webhook-Szenario, das an einem Modul-Fehler stoppt (BundleValidationError), schaltet sich beim Reaktivieren sofort wieder ab, solange das ausloesende Bundle in der Webhook-Queue liegt; die Queue ist NUR im UI leerbar (Show queue -> Delete), nicht ueber die Make-API. Fix: Filter/Guard vor dem strengen Modul (`text:pattern` gueltiger Regex-Operator) + client-seitiges Formular haerten. Hintergrund 18.07.2026: Newsletter-DOI 6439308 lag an `ronnymeier@gmail.com.` (Endpunkt), 50-Euro-Popup in WP-Snippet #32.
+
 ## 0.21.0 — 2026-07-18
 
 - NEU: Skill `camperfuchs-legacy-backend` ins Plugin aufgenommen (Migration aus Account-Skill) — mit korrigierter KERN-REGEL: NIE ab Azure-`master` patchen/deployen; immer erst die Live-Datei von srv2 ziehen und mit Diff-Guard patchen. Hintergrund: gemessener Drift 18.07.2026 — 64/561 Dateien in `/backend/src` weichen zwischen master (Stand 2022) und srv2-Live (2018er-Basis + In-Place-Patches) ab; srv2-Git ist ein Remote-loses Fossil, Wahrheit = Datei auf der Platte. Zudem korrigiert: SSH auf srv2 und Azure-REST (auch Projekt `Old Camperfuchs`) gehen direkt aus der Sandbox.

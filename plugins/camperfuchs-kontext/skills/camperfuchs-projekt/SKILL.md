@@ -167,6 +167,10 @@ Cache nachdenken.
 - **frontend/backend haben eine HPA** (min 2, max 4, Ziel 80% CPU). `replicaCount` in `chart/values.*.yaml` ist nur der Startwert â€” wer Replicas "von Hand" korrigiert, arbeitet gegen die HPA. Nach Deploys skaliert sie kurz hoch; passt der zusaetzliche Pod nicht auf die 2 Nodes, steht er `Pending` und verschwindet beim Scale-Down von selbst. Das ist **kein** Defekt.
 - **Lokale Dev-Umgebung** steht: `F:\dev\camperfuchs` (Mono-Repo lokal, `yarn dev` -> localhost:3000); kleine Frontend-/Text-Aenderungen lokal testbar, PRs per Browser.
 
+## Make.com - Szenario deaktiviert (Fehler / Gift-Bundle)
+
+Ein instant-Webhook-Szenario, das mit einem Modul-Fehler stoppt (z. B. `BundleValidationError: Validation failed for 1 parameter(s)`, typisch eine ungueltige E-Mail an ein Gmail-`to`-Feld), schaltet sich beim Reaktivieren SOFORT wieder ab, solange in der Webhook-Queue das ausloesende Bundle liegt. Diagnose: `executions?status=error` (welches Modul / welcher Parameter), dann `hooks_get` (`queueCount`). Die Webhook-Queue laesst sich NICHT ueber die Make-API/MCP leeren, nur im UI (Szenario oeffnen, "Show queue", Item, Detail, Delete). Danach die Ursache fixen (Filter/Guard VOR dem strengen Modul; `text:pattern` ist ein gueltiger Regex-Filter-Operator) und reaktivieren. Immer auch das client-seitige Formular haerten (echte E-Mail-Regex, nicht nur `type=email` bei Button+fetch ohne <form>), sonst liefert der naechste Tippfehler dasselbe Gift.
+
 ## Subdomains
 
 - `www.` = Live.
