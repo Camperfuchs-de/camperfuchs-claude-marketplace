@@ -9,6 +9,10 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## 0.23.0 (2026-07-20)
+
+- `camperfuchs-verfuegbarkeits-flow` auf Stand 20.07.2026: 6030776-Landkarte komplett (36 Module, Router 3 mit drei Routen NEIN/JA/RUECKFRAGE inkl. M40/M42/M44-Vorkette, M5-Picker-Hook, JA-Kundenentwurf M22 mit Zahlungsdaten + M24-Fallback, Kontaktdaten-Mail M60/M61, WhatsApp-Rueckfrage M50-M53); neue Sektion Stale-Base-Schutz (19./20.07. still geloeschte Module); Querverweise auf nein-alternativen-anfragen (6559455) und kalender-sperre; description erweitert.
+
 ## 0.22.0 - 2026-07-18
 
 - `camperfuchs-projekt`: Runbook-Nugget "Make.com - Szenario deaktiviert (Fehler / Gift-Bundle)" ergaenzt. Ein instant-Webhook-Szenario, das an einem Modul-Fehler stoppt (BundleValidationError), schaltet sich beim Reaktivieren sofort wieder ab, solange das ausloesende Bundle in der Webhook-Queue liegt; die Queue ist NUR im UI leerbar (Show queue -> Delete), nicht ueber die Make-API. Fix: Filter/Guard vor dem strengen Modul (`text:pattern` gueltiger Regex-Operator) + client-seitiges Formular haerten. Hintergrund 18.07.2026: Newsletter-DOI 6439308 lag an `ronnymeier@gmail.com.` (Endpunkt), 50-Euro-Popup in WP-Snippet #32.
