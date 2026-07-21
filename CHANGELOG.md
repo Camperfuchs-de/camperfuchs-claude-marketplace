@@ -9,6 +9,10 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.24.0 — 2026-07-20
+
+- `camperfuchs-legacy-backend`: Neue Pflicht-Falle „dist-Deploy ueberschreibt index.html UND alle Bundles" — nach jedem Legacy-Rollback/Deploy index.html-Diff gegen Vorgaenger-Backup + Patch-Fingerprint-Grep im Live-Bundle (Aufbereitung/Rabatt/stdPriceDiff, grep -o statt -c); Referenz-Bundle b40aa86a (16.07.); Empfehlung: bundle-feste Features als cf-booking-suggest-Addon (Beispiel cfMF Mobil-Feld inkl. Microtask-Falle beim XHR-Sniffing).
+
 ## 0.23.0 (2026-07-20)
 
 - `camperfuchs-verfuegbarkeits-flow` auf Stand 20.07.2026: 6030776-Landkarte komplett (36 Module, Router 3 mit drei Routen NEIN/JA/RUECKFRAGE inkl. M40/M42/M44-Vorkette, M5-Picker-Hook, JA-Kundenentwurf M22 mit Zahlungsdaten + M24-Fallback, Kontaktdaten-Mail M60/M61, WhatsApp-Rueckfrage M50-M53); neue Sektion Stale-Base-Schutz (19./20.07. still geloeschte Module); Querverweise auf nein-alternativen-anfragen (6559455) und kalender-sperre; description erweitert.

@@ -129,6 +129,19 @@ Fuer kleine UI-/Logik-Fixes im Angular-Bundle (kein Angular-4-Rebuild noetig):
 - **Bahti NICHT als PR-Reviewer setzen** (Reviewer = wir).
 - **Erst die LIVE-Datei profilen, dann Git** — early returns
   (`grep -n "return new JsonResponse"`) finden, bevor man toten Code misst.
+- **Ein dist-Deploy ueberschreibt index.html UND alle Bundles** (20.07.2026 teuer
+  gelernt): Der master-Rebuild-Deploy vom 18.07. ersetzte die index.html (Addon-Tags
+  `cf-booking-suggest.js` + Sentry WEG) und legte ein ungepatchtes master-Bundle live —
+  Abrechnung/Aenderungsprotokoll/Aufbereitungszeit/Rabatt-Patches still verschwunden.
+  Nach JEDEM Rollback/Deploy im Legacy PFLICHT: (1) index.html gegen das Vorgaenger-
+  Backup diffen (Addon-/Extra-Script-Tags mitnehmen), (2) Patch-Fingerprints im Live-
+  Bundle greppen (`Aufbereitung`, `Rabatt`, `stdPriceDiff` — Vorkommen zaehlen mit
+  `grep -o | wc -l`, NICHT `grep -c`: das Bundle ist EINE Zeile). Referenz-Bundle mit
+  allen Patches: `main.b40aa86a5627b4787d15.bundle.js` (16.07., inline.c8083d1b).
+  Features robust gegen Bundle-Tausch machen -> als Addon-Modul in cf-booking-suggest.js
+  bauen (Beispiel: Mobil-Feld Firmendetails, Modul `cfMF`, `?v=20260720mf6` — aktiver
+  GET ueber Route-ID statt XHR-Sniffing, denn Angulars Initial-GET feuert in Microtasks
+  VOR dem naechsten Script-Tag).
 
 ## Verwandte Skills
 `camperfuchs-legacy-srv2-mail` (SSH-Zugang, sicherer Edit-Workflow, Mail/DMARC),
