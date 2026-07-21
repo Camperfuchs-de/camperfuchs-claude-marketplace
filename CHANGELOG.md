@@ -9,6 +9,9 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.25.0 -- 2026-07-21
+- **legacy-backend:** Mail/DMARC Portal-Default-Absender-Falle ergaenzt. `MailHelper::send()` ohne `$from` nimmt den Portal-`senderEmail` als From; cf-Portal-Default `robot@camperfuchs.com` (.com) -> DMARC-Bounce. Wurzel-Fix: cf-Portal `senderEmail` -> `noreply@camperfuchs.de`; letzte .com-Codestelle in `UserHelper.php` bereinigt.
+
 ## v0.24.0 — 2026-07-20
 
 - `camperfuchs-legacy-backend`: Neue Pflicht-Falle „dist-Deploy ueberschreibt index.html UND alle Bundles" — nach jedem Legacy-Rollback/Deploy index.html-Diff gegen Vorgaenger-Backup + Patch-Fingerprint-Grep im Live-Bundle (Aufbereitung/Rabatt/stdPriceDiff, grep -o statt -c); Referenz-Bundle b40aa86a (16.07.); Empfehlung: bundle-feste Features als cf-booking-suggest-Addon (Beispiel cfMF Mobil-Feld inkl. Microtask-Falle beim XHR-Sniffing).

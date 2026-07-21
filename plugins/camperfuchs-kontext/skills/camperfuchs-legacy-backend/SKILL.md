@@ -143,6 +143,21 @@ Fuer kleine UI-/Logik-Fixes im Angular-Bundle (kein Angular-4-Rebuild noetig):
   GET ueber Route-ID statt XHR-Sniffing, denn Angulars Initial-GET feuert in Microtasks
   VOR dem naechsten Script-Tag).
 
+## Mail/DMARC: Portal-Default-Absender-Falle (21.07.2026)
+
+`MailHelper::send($recipient,$subject,$body,$attachments,$from=null,...)` hat ZWEI Absender-Wege:
+- `$from` gesetzt -> greift der 23.06.-Fix: `From: noreply@camperfuchs.de` + `Reply-To=$from`. Aligned, kein Bounce.
+- `$from = null` -> else-Zweig nimmt den Portal-Default `getPortal()->getSenderEmail()` als From. Fuer das `cf`-Portal war das `robot@camperfuchs.com` (.com!) -> DMARC `p=reject` -> Bounce bei Gmail/GMX/web.de/t-online.
+
+Konsequenz: JEDE `send()`-ohne-`$from` uebers cf-Portal bounct -- auch wenn der explizite-`$from`-Zweig laengst gefixt ist. Passiert am 20.07. mit der neuen office@-Mail "Neues Fahrzeug angelegt" (ArticleController).
+
+Fix (21.07., beide Ebenen):
+1. Aufruf mit explizitem `$from` versehen (chirurgisch), ODER
+2. WURZEL: Portal-Default umstellen. cf-Portal (Portal-Entity key=`cf`, ID `MENJM5Y8`) `senderEmail` `robot@camperfuchs.com` -> `noreply@camperfuchs.de` (Doctrine + Guard, NUR cf; `pp`/`ra` sind Fremdmarken -> nie anfassen).
+3. Letzte .com-Codestelle: `UserHelper.php:53` (User-Bestaetigungsmail) `robot@camperfuchs.com` -> `noreply@camperfuchs.de`. Danach kommt `robot@camperfuchs.com` in /home/gaz/rent/src nirgends mehr vor.
+
+Portale + Default-Absender listen: Kernel booten (`sudo -u www-data`), Portal-Repo `findAll()` -> `getKey()`/`getSenderEmail()`. E2E-Beweis IMMER ueber Mailgun-Event `from=...` + `delivered`.
+
 ## Verwandte Skills
 `camperfuchs-legacy-srv2-mail` (SSH-Zugang, sicherer Edit-Workflow, Mail/DMARC),
 `camperfuchs-azure-devops` / `camperfuchs-deploy` (NEUES Monorepo),
