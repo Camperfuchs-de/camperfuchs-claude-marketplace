@@ -9,6 +9,10 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.26.0 -- 2026-07-21
+- **frontend-feature-shippen:** Prod-Promote-Quelle explizit — Prod-PRs MÜSSEN von `staging` kommen (Policy `prod-check-source-branch-pipeline`/Def 14 verlangt SOURCE==staging), main→prod fällt durch.
+- **projekt:** Backend-Konvention ergänzt — neue Spring-Endpoints setzen Statuscodes NICHT per `@ResponseStatus` (ControllerAdvisor-Catch-all übersteuert auf 500); gemappte Exceptions nutzen (ElementNotFoundException→404, BadRequestException→400, neue ForbiddenException→403 + Advisor-Handler).
+
 ## v0.25.0 -- 2026-07-21
 - **legacy-backend:** Mail/DMARC Portal-Default-Absender-Falle ergaenzt. `MailHelper::send()` ohne `$from` nimmt den Portal-`senderEmail` als From; cf-Portal-Default `robot@camperfuchs.com` (.com) -> DMARC-Bounce. Wurzel-Fix: cf-Portal `senderEmail` -> `noreply@camperfuchs.de`; letzte .com-Codestelle in `UserHelper.php` bereinigt.
 
