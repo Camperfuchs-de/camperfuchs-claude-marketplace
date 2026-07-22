@@ -9,6 +9,11 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.27.0 -- 2026-07-22
+- **projekt:** Falschaussage korrigiert — es gibt **ZWEI** Cloudflare-Tokens: `cloudflare-api-token.txt` (Zonen lesen + Snippets schreiben, **kein** Purge) und `cloudflare-purge-token.txt` (**kann purgen**, verifiziert `success:true`). Der bisherige Satz "Cloudflare-API-Token kann weiterhin NICHT purgen" galt nur fuer den ersten Token und hat wiederholt zu unnoetigen Workarounds gefuehrt.
+- **cache-purge:** Purge-Token jetzt unter dem sprechenden Namen `.secrets/cloudflare-purge-token.txt` referenziert (historisch lag er als `Claude API BENUTZER API TOKEN.txt` vor, klingt nach Anthropic, ist aber Cloudflare).
+- **Hinweis:** v0.26.0 war im Changelog, aber nie in `plugin.json` (dort stand weiterhin 0.25.0). Mit dieser Version sind Changelog und plugin.json wieder deckungsgleich.
+
 ## v0.26.0 -- 2026-07-21
 - **frontend-feature-shippen:** Prod-Promote-Quelle explizit — Prod-PRs MÜSSEN von `staging` kommen (Policy `prod-check-source-branch-pipeline`/Def 14 verlangt SOURCE==staging), main→prod fällt durch.
 - **projekt:** Backend-Konvention ergänzt — neue Spring-Endpoints setzen Statuscodes NICHT per `@ResponseStatus` (ControllerAdvisor-Catch-all übersteuert auf 500); gemappte Exceptions nutzen (ElementNotFoundException→404, BadRequestException→400, neue ForbiddenException→403 + Advisor-Handler).

@@ -39,7 +39,7 @@ Wenn die Seite **trotz** erfolgreichem Purge weiter alt aussieht, sitzt die alte
 
 ## Token (wichtig)
 
-- **Purge-fähig:** der Token in `.secrets/Claude API BENUTZER API TOKEN.txt` → `POST /zones/835b24…/purge_cache` = `success:true`.
+- **Purge-fähig:** der Token in `.secrets/cloudflare-purge-token.txt` (identisch mit der historisch falsch benannten Datei `.secrets/Claude API BENUTZER API TOKEN.txt` — klingt nach Anthropic, ist Cloudflare) → `POST /zones/835b24…/purge_cache` = `success:true`.
 - **NICHT purge-fähig:** der Token in `.secrets/cloudflare-api-token.txt` → Auth-Fehler 10000. Der ist nur fürs Lesen/Settings.
 - Token liegt NUR lokal in `.secrets`, niemals in Memory/Chat/Repo im Klartext.
 
