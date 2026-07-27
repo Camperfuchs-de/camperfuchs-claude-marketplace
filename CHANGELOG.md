@@ -9,6 +9,16 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.30.0 (2026-07-27)
+
+- camperfuchs-legacy-backend: Umlaut-/Encoding-Falle dokumentiert (Doppel-Encoding in der
+  master-Quelle wird vom Minifier zu literalen `\xc3`-Escapes = "Ã¼" im UI; Pruef-Rezept,
+  Golden-Bundle jetzt main.b99d8319) + Selbstheiler-Cron-Abschnitt (heilt jetzt auch
+  cf-booking-suggest.js-Module cfABMD/cfRDO additiv, Konvention fuer neue Addon-Module).
+- camperfuchs-kalender-sperre: Wochentags-Ausschluss-Button (rdo=1) auf der NEIN-Danke-Seite
+  + restaurierter Kalender-Sperre-Button, neuer Endpoint /api/automation/request-days-off,
+  Fallen: by-landlord braucht &size=500 (Vermieter >50 Fahrzeuge), DS-fahrzeug = Shortname.
+
 ## v0.29.0 — 2026-07-27
 
 - **camperfuchs-cache-purge:** neuer Abschnitt „Dateien LÖSCHEN (Mediathek/Uploads)". Gelöschte

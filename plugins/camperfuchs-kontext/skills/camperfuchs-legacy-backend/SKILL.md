@@ -158,6 +158,29 @@ Fix (21.07., beide Ebenen):
 
 Portale + Default-Absender listen: Kernel booten (`sudo -u www-data`), Portal-Repo `findAll()` -> `getKey()`/`getSenderEmail()`. E2E-Beweis IMMER ueber Mailgun-Event `from=...` + `delivered`.
 
+## Umlaut-/Encoding-Falle im Bundle (27.07.2026, teuer gelernt)
+
+Symptom: Backend zeigt "Ã¼" statt "ü" (z.B. "Anzahlung bei Buchung Ã¼ber Camperfuchs"),
+obwohl DB und API sauber sind. Ursache-Kette: Quelldatei im master lag DOPPELT encodiert vor
+(echte Zeichen "Ã¼" = Bytes C383 C2BC) → der Minifier (node:8-Rebuild) macht daraus literale
+JS-Escapes `\xc3\xbc` — und `\x` ist in JS ein Latin-1-Codepoint, rendert also als "Ã¼".
+
+- Nach JEDEM rentapp-Rebuild pruefen: `grep -o '\\xc3' bundle | wc -l` MUSS 0 sein.
+- Quelle auf Doppel-Encoding pruefen: Byte-Suche nach C3 83 ("Ã" als echtes Zeichen).
+- In JS-Strings NIE UTF-8-Bytes als `\xNN`-Paare schreiben — `\u00XX` oder echte Zeichen.
+- Fix 27.07.: Golden-Bundle jetzt `main.b99d8319dfc26e978896.bundle.js` (Cache-Bust ueber
+  NEUEN Dateinamen, CF-Edge haelt alte Namen 1 Jahr), master-Quelle entdoppelt (a16af580).
+
+## Selbstheiler-Cron (cf-ensure-addon.sh, Stand 27.07.2026)
+
+Laeuft minuetlich als root auf srv2 (`$B=/home/gaz/rentanda/web/backend`): heilt index.html
+(Addon-Script-Tags, Google-Maps-Key, main-Bundle-Referenz auf GOLDEN) UND seit 27.07. die
+Addon-Module in `cf-booking-suggest.js`: fehlen die Fingerprints `__cfABMDLoaded`/`__cfRDOLoaded`
+(Ueberschreiber-Regression), haengt er das Modul additiv aus `$B/cf-modules/<name>.module.js` an
+und bumpt `?v=autoheal<ts>`. Neue Addon-Module deshalb IMMER: (1) als eigene IIFE mit
+`__cfXYZLoaded`-Guard, (2) Modul-Datei in `cf-modules/` ablegen, (3) Zeile in der MOD-Liste des
+Skripts ergaenzen. Wer cf-booking-suggest.js neu schreibt: vorher Fingerprints ALLER Module greppen.
+
 ## Verwandte Skills
 `camperfuchs-legacy-srv2-mail` (SSH-Zugang, sicherer Edit-Workflow, Mail/DMARC),
 `camperfuchs-azure-devops` / `camperfuchs-deploy` (NEUES Monorepo),

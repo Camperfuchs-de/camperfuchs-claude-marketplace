@@ -46,6 +46,18 @@ jedem NEIN würde buchbare Zeiträume dichtmachen = direkter Umsatzverlust. Desh
    (`/home/gaz/rent`), Routen `/api/automation/block` und `/api/automation/unblock`.
    Repo: Azure-Projekt „Old Camperfuchs", PR #1387.
 
+## Wochentags-Ausschluss (rdo, seit 27.07.2026)
+
+Die NEIN-Danke-Seite (6030776 M2) traegt seit 27.07. ZWEI Buttons (der Kalender-Sperre-Button
+war beim Phase-4/M20-Umbau verschwunden und wurde restauriert): (1) "Zeitraum im Kalender
+sperren" (wie gehabt) und (2) "Keine Anfragen mehr an diesem Wochentag" → gleicher Hook mit
+`&rdo=1`. In 6578305 haengen dafuer 2 zusaetzliche Router-Routen (M20/21 Erfolg, M30/31
+Fallback-Mail an Bjoern); die beiden Alt-Routen haben einen `1.rdo notexist`-Guard. Der Tag ist
+der ABHOL-Wochentag der Anfrage (`upper(formatDate(parseDate(...); "dddd"))`), gesetzt wird er
+per POST `/api/automation/request-days-off` (AutomationController, key-gated wie /block, Station
+via Article, idempotent add/remove) in `stations.request_days_off` (CSV aus DayOfWeek-Namen;
+Enforcement im neuen Backend BookingService, Pflege-UI = cfRDO-Haekchen im Oeffnungszeiten-Tab).
+
 ## Endpoint
 
 ```
@@ -75,6 +87,11 @@ den Parameter als Platzhalter `~`.
 
 ## Fallen (teuer gelernt)
 
+- **by-landlord IMMER mit `&size=500` aufrufen** (seit 27.07. in M4 drin): Default ist
+  Page-Groesse 50 — Vermieter mit mehr Fahrzeugen (Elba: 57) finden ihr Fahrzeug sonst nicht
+  auf Seite 1 → Fallback statt Sperre. Betraf den Block-Flow seit Anbeginn.
+- **DS-Feld `fahrzeug` traegt den SHORTNAME** (= VM-`title` von by-landlord), NICHT
+  `articles.title` (langer SEO-Titel). Testrecords mit dem Kurznamen bauen, sonst 0 Treffer.
 - **Fahrzeug-Titel sauber schneiden:** DS-Feld `fahrzeug` ist roh, also
   `WEINSBERG CaraCore 650 MF [https://email.mg…]`. Nutze
   `trim(first(split(2.fahrzeug; " [https")))` — **KEIN Regex** mit `[^\]]`, das bricht in
