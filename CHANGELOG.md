@@ -9,6 +9,10 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.28.0 — 2026-07-27
+
+- `camperfuchs-verfuegbarkeits-flow`: M22-JA-Entwurf-Fix dokumentiert (get(map(ifempty(…; emptyarray))) wirft nicht mehr bei Fahrzeugen außerhalb by-landlord; M24-Fallback mit 21.mieter), Modulzahl 36→38, NEU: Abschnitt "Phase-4 decision-Call M99 entkoppelt" (M99 als eigene Router-3-Route — nie zurück in die lineare Kette, Filter/Ignore killen dort die ganze Nachverarbeitung), Test-Fallen ergänzt (131793-Record zwischen Läufen löschen, Ops-Zahlen als Diagnose, Make-REST-PATCH braucht Browser-UA).
+
 ## v0.27.0 -- 2026-07-22
 - **projekt:** Falschaussage korrigiert — es gibt **ZWEI** Cloudflare-Tokens: `cloudflare-api-token.txt` (Zonen lesen + Snippets schreiben, **kein** Purge) und `cloudflare-purge-token.txt` (**kann purgen**, verifiziert `success:true`). Der bisherige Satz "Cloudflare-API-Token kann weiterhin NICHT purgen" galt nur fuer den ersten Token und hat wiederholt zu unnoetigen Workarounds gefuehrt.
 - **cache-purge:** Purge-Token jetzt unter dem sprechenden Namen `.secrets/cloudflare-purge-token.txt` referenziert (historisch lag er als `Claude API BENUTZER API TOKEN.txt` vor, klingt nach Anthropic, ist aber Cloudflare).

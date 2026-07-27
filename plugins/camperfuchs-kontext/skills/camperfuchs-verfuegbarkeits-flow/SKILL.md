@@ -1,6 +1,6 @@
 ---
 name: camperfuchs-verfuegbarkeits-flow
-description: Betrieb, Änderung und Troubleshooting des Camperfuchs Vermieter-Verfügbarkeits-Flows (Make-Szenarien 5482694 + 6030776, live seit 04.06.2026) — Verfügbarkeits-Mail mit JA/NEIN/Rückfrage-Buttons, zweistufige Bestätigung gegen Scanner-Fehlklicks, automatischer Gmail-Entwurf an Mietinteressenten bei NEIN (mit Alternativ-Optionen) UND bei JA (»Gute Nachricht«-Mail mit Anzahlungs-/Zahlungsdaten), automatische Kontaktdaten-Mail an den Vermieter bei JA, WhatsApp an den Kunden bei Rückfrage, Antwort-Tracking im Datastore + Live-Dashboard. IMMER nutzen bei Fragen rund um den Flow — explizit ('Verfügbarkeits-Mail ändern', 'Vermieter-Buttons', 'Szenario 5482694/6030776', 'Mieter-Entwurf bei Nein/Ja', 'Rückfrage-WhatsApp') wie implizit ('Vermieter sagt er hat geklickt aber nichts passiert', 'Kunde hat keine Antwort bekommen', 'wer hat nicht reagiert', 'Mail-Design anpassen'). Enthält System-Landkarte (Stand 20.07.2026, alle IDs), Test-Rezepte, Stale-Base-Schutzregeln und teuer gelernte Gotchas.
+description: Betrieb, Änderung und Troubleshooting des Camperfuchs Vermieter-Verfügbarkeits-Flows (Make-Szenarien 5482694 + 6030776, live seit 04.06.2026) — Verfügbarkeits-Mail mit JA/NEIN/Rückfrage-Buttons, zweistufige Bestätigung gegen Scanner-Fehlklicks, automatischer Gmail-Entwurf an Mietinteressenten bei NEIN (mit Alternativ-Optionen) UND bei JA (»Gute Nachricht«-Mail mit Anzahlungs-/Zahlungsdaten), automatische Kontaktdaten-Mail an den Vermieter bei JA, WhatsApp an den Kunden bei Rückfrage, Antwort-Tracking im Datastore + Live-Dashboard. IMMER nutzen bei Fragen rund um den Flow — explizit ('Verfügbarkeits-Mail ändern', 'Vermieter-Buttons', 'Szenario 5482694/6030776', 'Mieter-Entwurf bei Nein/Ja', 'Rückfrage-WhatsApp') wie implizit ('Vermieter sagt er hat geklickt aber nichts passiert', 'Kunde hat keine Antwort bekommen', 'wer hat nicht reagiert', 'Mail-Design anpassen'). Enthält System-Landkarte (Stand 27.07.2026, alle IDs), Test-Rezepte, Stale-Base-Schutzregeln und teuer gelernte Gotchas.
 ---
 
 # Camperfuchs Verfügbarkeits-Flow (Vermieter-Buttons + Tracking)
@@ -11,15 +11,15 @@ description: Betrieb, Änderung und Troubleshooting des Camperfuchs Vermieter-Ve
 
 Arbeitsweise (chirurgische Blueprint-Edits, validate vor update) steht in `camperfuchs-make` — die gilt hier immer mit. ⚠️ Korrektur 15.06.: der Make-**Hook** `hook.eu1.make.com/…` IST aus der Sandbox per `curl` erreichbar (siehe Test-Rezept), auch wenn die make.com-**App/API** es nicht ist.
 
-## System-Landkarte (Stand 20.07.2026)
+## System-Landkarte (Stand 27.07.2026)
 
 **Flow:** Neue Mietanfrage (Mail von noreply@) → **5482694 „Integration Gmail"** schickt dem Vermieter die Verfügbarkeits-Mail mit 3 Antwort-Button-Links + 2 Info-Buttons + loggt `status=offen` (seit 14.07. via Router **M27**: Route A = M2 normal, Route B = M26 maskiert — siehe Maskierungs-Abschnitt) → Klick landet bei **6030776 „Vermieter Verfügbarkeit – Button-Antworten"** (Webhook `3164869`, URL `https://hook.eu1.make.com/tu2xumx8rhjynvul6l2stjxq7r5mcc55`).
 
 **6030776 ist ZWEISTUFIG** (Scanner-Schutz, seit 04.06. ~20 Uhr; Router 11 hat seit 23.06. VIER Routen):
 - ohne `confirm`-Param: bei **NEIN → Modul 20 Fahrzeug-Picker-Formular** (lädt per JS die freien Fahrzeuge des Vermieters als antippbare Radio-Liste via `by-landlord` — inkl. Kennzeichen hinter dem Namen — plus Freitext-Fallback + „Alternativer Zeitraum"); bei **Rückfrage → Modul 30 Freitext-Formular** (Textfeld „Deine Frage oder Anmerkung" → Param `frage`); bei **JA → Modul 12 Button-Seite**. Alle drei rufen dieselbe URL mit `confirm=1` + allen Params (+ ggf. `alt_zeitraum`/`alt_fahrzeug` aus M20 bzw. `frage` aus M30) auf. Filter: Modul 12 = `confirm notexist` UND `aktion text:notequal nein` UND `aktion text:notequal rueckfrage` (= nur JA + Fallback); Modul 20 = `confirm notexist` UND `aktion text:equal nein`; Modul 30 = `confirm notexist` UND `aktion text:equal rueckfrage`.
-- mit `confirm=1` → Modul 2 Danke-Seite → Modul 13 UpdateRecord (Tracking) → Modul 8 DeleteRecord (24h-Reminder-Stopp, Datastore 124997) → **Router 3 mit DREI Routen** (das Szenario hat insgesamt **36 Module**):
+- mit `confirm=1` → Modul 2 Danke-Seite → Modul 13 UpdateRecord (Tracking) → Modul 8 DeleteRecord (24h-Reminder-Stopp, Datastore 124997) → **Router 3 mit DREI Routen** (das Szenario hat insgesamt **38 Module** (inkl. M98/M99 Phase-4 decision-Call)):
   - **NEIN** (Route zu M4): **M40 GetRecord** (DS 131528) → **M42 HTTP** `/api/V1/articles/by-landlord` → **M44 Nominatim-Geocode** → **M4** Kalender-Erinnerung an den Vermieter → **M5** Info-Mail an Björn mit Button „Freie Alternativen anfragen" — Picker-Hook `m5jcmvmvw2dkfoyv6vp9q5i3fla2k31a` mit `alt=1`, `from`/`to` (aus `40.zeitraum`), `address`/`lat`/`lon` (`44.data` bzw. 42-Fallback), `mieter={{if(1.mieter; 1.mieter; 40.mieter)}}`, `vorname`, `betreff`, `personen=40.personen` → **M10 Gmail-ENTWURF an den Mietinteressenten** (to + Filter ebenfalls mit `40.mieter`-Fallback; Betreff „Deine Wohnmobil-Anfrage bei Camperfuchs", personalisiert mit `{{1.vorname}}`, volle Signatur, conditional Alternativ-Absatz — Vorlage: `04_Setup-Anleitungen/Gmail-Signatur-Vorlage.html`). Außerdem **M20 = Vermieter-Picker** (eigene Alternative des ABSAGENDEN Vermieters, zeigt Kennzeichen) — nicht verwechseln mit dem Alt-Vermieter-Picker (Szenario 6559455 → Skill `camperfuchs-nein-alternativen-anfragen`).
-  - **JA** (`aktion=ja`): **M6** Info-Mail an Björn → **M21 GetRecord** (DS 131528) → **M25 HTTP** by-landlord → **M22 Gmail-ENTWURF an den Mietinteressenten** „Gute Nachricht zu deiner Wohnmobil-Anfrage bei Camperfuchs" (dynamisch: Fahrzeugname, Zeitraum, Fahrzeug-Link, Online-Buchen-Button bzw. Anzahlungs-/Überweisungsdaten — 20 % Anzahlung, VOLLER Betrag wenn Mietbeginn ≤ 30 Tage; Vermieter in CC; to + Filter mit `21.mieter`-Fallback; onerror-Fallback **M24** = vereinfachter statischer Entwurf) → **M60** automatische Kontaktdaten-Mail an den Vermieter (Teil der Kontaktdaten-Maskierung, **M61** = Ignore-Fallback).
+  - **JA** (`aktion=ja`): **M6** Info-Mail an Björn → **M21 GetRecord** (DS 131528) → **M25 HTTP** by-landlord → **M22 Gmail-ENTWURF an den Mietinteressenten** „Gute Nachricht zu deiner Wohnmobil-Anfrage bei Camperfuchs" (dynamisch: Fahrzeugname, Zeitraum, Fahrzeug-Link, Online-Buchen-Button bzw. Anzahlungs-/Überweisungsdaten — 20 % Anzahlung, VOLLER Betrag wenn Mietbeginn ≤ 30 Tage; Vermieter in CC; to + Filter mit `21.mieter`-Fallback; onerror-Fallback **M24** = vereinfachter statischer Entwurf; seit 27.07. M24-to/Filter mit `21.mieter`-Fallback und M22-Formeln `get(map(ifempty(25.data.content; emptyarray); …))` — wirft nicht mehr, wenn das Fahrzeug nicht in by-landlord steckt) → **M60** automatische Kontaktdaten-Mail an den Vermieter (Teil der Kontaktdaten-Maskierung, **M61** = Ignore-Fallback).
   - **RÜCKFRAGE** (`aktion=rueckfrage`): **M7** Info-Mail an Björn — zeigt den Vermieter-Freitext im Beige-Block „Frage des Vermieters" via `{{if(1.frage; 1.frage; "(keine Angabe …)")}}` (`white-space:pre-wrap`) — → **M50–M53 WhatsApp** `sendTemplateMessage` (Template `rueckfrage_kunde::de`, Filter „Mobil + Frage vorhanden", **M51/M53** = Ignore-Fallbacks).
 
 **Webhook-Params:** `aktion` (ja|nein|rueckfrage), `vermieter`, `betreff`, `mieter` (Mieter-E-Mail), `vorname`, `confirm`, **`alt_zeitraum`/`alt_fahrzeug`** (optional, nur aus dem NEIN-Formular Modul 20), **`frage`** (optional, nur aus dem Rückfrage-Formular Modul 30). Neue Params kommen dynamisch durch (kein `metadata.interface`-Eintrag nötig — vgl. `alt_*`/`frage`).
@@ -31,6 +31,17 @@ Arbeitsweise (chirurgische Blueprint-Edits, validate vor update) steht in `campe
 **Design (von new.camperfuchs.de, Kadence-Palette):** weißer Header mit Badge-Logo `www.camperfuchs.de/wp-content/uploads/2026/06/CF_Logo_Badge_320x280.png` (Media-ID 19625), Titel-Band Braun `#89521f` weiß UPPERCASE, Datenblock Beige `#efeae6` (Kunde, Fahrzeug, Reisezeitraum, Bemerkung), darunter **2 braune Info-Buttons `#89521f`** („Fahrzeug ansehen" / „{{telefon}} anrufen", OHNE Emoji-Icons — Björn-Wunsch 08.06.), Text Anthrazit `#28383d`/`#484745`, dunkler Footer `#202020` mit weißem Logo `…/CF_Logo_Header_White.png` (ID 19626), Antwort-Buttons JA `#2e7d32` / NEIN `#c62828` / Rückfrage weiß mit Braun-Outline. Formular-Seite (Modul 20) übernimmt dieselbe Palette. Referenz-HTML: `01_Architektur-Tech/Vermieter-Verfuegbarkeitsmail_Buttons_2026-06-08_Vorschau.html`, `01_Architektur-Tech/Verfuegbarkeit-NEIN-Formular_2026-06-15_Vorschau.html`.
 
 **Connections:** Gmail v4 `6998308` (Trigger, sendAnEmail, createADraft) · Google Restricted `7458024` (ActionSendEmail v2).
+
+## Phase-4 decision-Call M99 (entkoppelt 27.07.2026)
+
+**M99** postet nach jeder Bestätigung die Entscheidung ans Backend
+(`POST /api/V1/bookings/{{1.nr}}/decision?aktion=…`, Header X-CF-Automation-Secret), Filter
+„nr vorhanden", onerror **M98** Ignore. Seit 27.07. hängt M99 als EIGENE vierte Route unter
+Router 3 — vorher (25.–27.07.) saß er in der linearen Confirm-Kette VOR Router 3, wodurch
+JEDER Klick ohne `nr`-Param (Mails vor ~21.07.) und jeder Backend-Fehler (404/500 → Ignore)
+die GESAMTE Nachverarbeitung still killte (kein M6/M22/M60, Ausführung trotzdem „Erfolg",
+nur 5 Ops statt 13/14). **NIE zurück in die lineare Kette bauen** — Make-Filter/Ignore stoppen
+dort die ganze Route, Router-Routen sind dagegen voneinander isoliert.
 
 ## Regex in 5482694 (Modul 7)
 
@@ -89,8 +100,8 @@ M60/M61, M50–M53 und die Datastore-Fallbacks **still gelöscht** (am 20.07. re
 
 1. Vor JEDEM `scenarios_update` ein FRISCHES `scenarios_get` als Basis nehmen — nie einen alten
    Download, ein Backup oder einen Blueprint aus einer früheren Session.
-2. Modul-ANZAHL gegenprüfen (6030776 = **36 Module**) und Marker checken: `m5jc` muss in
-   M5, M60 und M50 vorkommen.
+2. Modul-ANZAHL gegenprüfen (6030776 = **38 Module**) und Marker checken: `m5jc` muss in
+   M5 vorkommen (seit Phase 4 nur noch dort; M50=GetRecord, M60 ohne Hook-Link).
 3. Pre-Update-Backup des frischen Blueprints nach `outputs/` legen.
 4. Nach dem Update Marker + Signatur-Token erneut prüfen: `streak-link.com` 27x, mail-sig 21x
    im Blueprint.
@@ -102,6 +113,15 @@ M60/M61, M50–M53 und die Datastore-Fallbacks **still gelöscht** (am 20.07. re
 2. **Stufe 2 (Formular-Submit):** `curl -G …/tu2… --data-urlencode confirm=1 --data-urlencode aktion=nein --data-urlencode vermieter=b.dunker@… --data-urlencode betreff=TEST --data-urlencode mieter=b.dunker@… --data-urlencode vorname=Karolina --data-urlencode "alt_zeitraum=2. – 9. August" --data-urlencode "alt_fahrzeug=Kulba Rebell"` → Danke-Seite; in Björns Postfach Kalender-/Info-Mail + **Mieter-Entwurf**.
 3. **Entwurf prüfen** per Gmail-MCP `list_drafts` (query `subject:"Deine Wohnmobil-Anfrage bei Camperfuchs"`) → `get_thread` (FULL_CONTENT): Alternativ-Absatz korrekt? Auch den **Leer-Fall** (alt-Felder leer) testen → Absatz ohne hängende Satzteile.
 4. Aufräumen: Test-Records löschen (`data-store-records_delete` DS 131793 Key `vermieter|betreff|nein`, DS 131528 Key `vermieter|betreff`); Test-Mails/Entwürfe von Björn löschen lassen (Hard-Delete von Mail ist tabu).
+
+⚠️ **Test-Fallen (27.07. teuer gelernt):**
+- Zwischen zwei Confirm-Testläufen mit gleichem Key den **131793-Record löschen** — sonst wirft
+  M17 AddRecord (Duplicate) → Ignore → Kette stirbt still bei 3 Ops.
+- **Ops-Zahl = Diagnose:** 13 = volle JA-Kette (ohne M99), 14 = mit M99, 5 = Stopp vor Router 3,
+  3 = Stopp bei M17. `executions_get-detail` liefert bei Webhook-Runs oft nur `{status}` —
+  die Ops-Zahl aus `executions_list`/`/logs` ist das Werkzeug.
+- Make-REST **PATCH aus der Sandbox braucht einen Browser-User-Agent** (sonst Cloudflare 403
+  error 1010); GET geht ohne. Der REST-PATCH-Weg umgeht das MCP-Kontextlimit bei 66k-Blueprints.
 
 Alternativ Chrome-`navigate` auf die Hook-URL (gleiche Stufen). **Mail-Render von 5482694 (M2) ist NICHT sicher selbst testbar** — ein echter Lauf würde die Verfügbarkeits-Mail an einen echten Vermieter schicken. Daher: HTML offline rendern + Blueprint zurücklesen, finale Live-Darstellung an der NÄCHSTEN echten Anfrage prüfen (`executions_list`). ⚠️ `scenarios_run` mit `data` mappt NICHT auf die Webhook-Felder (`{{1.x}}`) → für den Test echten HTTP-Request (curl/Chrome) nutzen, nicht `scenarios_run`.
 
