@@ -9,6 +9,15 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.29.0 — 2026-07-27
+
+- **camperfuchs-cache-purge:** neuer Abschnitt „Dateien LÖSCHEN (Mediathek/Uploads)". Gelöschte
+  WP-Uploads bleiben bis zu 30 Tage über den Cloudflare-Edge öffentlich abrufbar
+  (`immutable, max-age=2592000`) — Löschen allein reicht nicht. Belegter Vorfall 27.07.2026:
+  Mediathek leer, PDFs trotzdem HTTP 200 mit `cf-cache-status: HIT`. Enthält die Pflicht-Reihenfolge
+  (löschen → purgen für beide Hosts → auf HTTP 404 verifizieren) und die Mess-Falle, dass zu viele
+  parallele curls `000` liefern und wie „weg" aussehen.
+
 ## v0.28.0 — 2026-07-27
 
 - `camperfuchs-verfuegbarkeits-flow`: M22-JA-Entwurf-Fix dokumentiert (get(map(ifempty(…; emptyarray))) wirft nicht mehr bei Fahrzeugen außerhalb by-landlord; M24-Fallback mit 21.mieter), Modulzahl 36→38, NEU: Abschnitt "Phase-4 decision-Call M99 entkoppelt" (M99 als eigene Router-3-Route — nie zurück in die lineare Kette, Filter/Ignore killen dort die ganze Nachverarbeitung), Test-Fallen ergänzt (131793-Record zwischen Läufen löschen, Ops-Zahlen als Diagnose, Make-REST-PATCH braucht Browser-UA).

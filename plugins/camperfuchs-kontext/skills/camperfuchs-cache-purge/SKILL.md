@@ -37,6 +37,24 @@ Direkt nach Purge `MISS`/`EXPIRED`, beim zweiten Abruf wieder `HIT` → Edge ist
 
 Wenn die Seite **trotz** erfolgreichem Purge weiter alt aussieht, sitzt die alte Fassung im **SPC-Disk-Cache am Origin** (WordPress, über mehrere K8s-Pods). Das löst kein Edge-Purge → ist die systemische Bahti-Baustelle (Auto-Purge über alle Pods bzw. `s-maxage` senken). Siehe Memory `project_camperfuchs_cache_propagation`.
 
+## Sonderfall: Dateien LÖSCHEN (Mediathek/Uploads) — Löschen allein reicht NICHT
+
+Wenn eine Datei nicht geändert, sondern **entfernt** werden soll (typisch: PDFs, die temporär über die WP-Mediathek verteilt wurden), ist das Löschen in WordPress nur der halbe Weg. `/wp-content/uploads/...` wird mit `cache-control: public, immutable, max-age=2592000` ausgeliefert und liegt danach **30 Tage** im Cloudflare-Edge — die Datei ist nach dem Löschen weiter öffentlich abrufbar.
+
+Belegter Vorfall 27.07.2026 (Nürnberger-Briefversand, 27 Versicherungs-PDFs mit Namen, Kennzeichen, Beiträgen und Kontoinhaber-Daten): WP-Mediathek `?search=NBG-` lieferte bereits 0 Treffer, die URLs kamen trotzdem mit HTTP 200, `cf-cache-status: HIT`, `age 3039`. Erst der gezielte Purge machte daraus 404.
+
+Pflicht-Reihenfolge beim Entfernen:
+
+1. WP-Medien löschen (`DELETE /wp-json/wp/v2/media/<id>?force=true`), bis `?search=<präfix>` → 0 Treffer.
+2. **Purgen** — alle betroffenen Datei-URLs, und zwar für **beide Hosts** (`https://www.camperfuchs.de/...` UND `https://camperfuchs.de/...`), sonst bleibt eine Variante im Cache stehen.
+3. **Verifizieren mit dem Ziel HTTP 404** — hier zählt der Statuscode, nicht `cf-cache-status` wie bei Content-Edits. Nicht mit hoher Parallelität messen: ab ~10 gleichzeitigen curls liefert die Sandbox `000` (Verbindungsfehler), das sieht wie „weg" aus, ist aber gar keine Messung. Bewährt:
+
+```bash
+xargs -a urls.txt -P 3 -I{} sh -c 'echo "$(curl -s -o /dev/null -w %{http_code} --max-time 12 https://www.camperfuchs.de/wp-content/uploads/2026/07/{}) {}"'
+```
+
+Merksatz: **öffentlich hochgeladen = erst weg, wenn WP gelöscht UND gepurgt UND 404 verifiziert ist.**
+
 ## Token (wichtig)
 
 - **Purge-fähig:** der Token in `.secrets/cloudflare-purge-token.txt` (identisch mit der historisch falsch benannten Datei `.secrets/Claude API BENUTZER API TOKEN.txt` — klingt nach Anthropic, ist Cloudflare) → `POST /zones/835b24…/purge_cache` = `success:true`.
