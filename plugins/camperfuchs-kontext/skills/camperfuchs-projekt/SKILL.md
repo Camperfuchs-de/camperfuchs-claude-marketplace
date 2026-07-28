@@ -62,6 +62,40 @@ Faustregel: Marketing/Texte/SEO → WordPress. Fahrzeuge/Buchung/App-Logik → A
 - App-Code, Origin und Kubernetes liegen bei Bahti; reine Text-/Content-Changes kann Björn
   selbst machen.
 
+## Datenbank-Migrationen (Flyway) — Versionsnummer kollidiert = Backend tot
+
+Das Spring-Backend faehrt Flyway-Migrationen aus `backend/src/main/resources/db/migration`
+(`V<major>.<minor>.<patch>__<name>.sql`). **Zwei Dateien mit derselben Versionsnummer sind ein
+harter Startfehler**, kein Warnhinweis:
+
+```
+Found more than one migration with version 2.1.15
+```
+
+Jeder neue Backend-Pod crasht dann beim Start — die komplette Umgebung antwortet mit **503**,
+nicht nur das neue Feature. Am 27./28.07.2026 hat genau das staging lahmgelegt: zwei parallel
+entwickelte Branches vergaben beide `V2.1.15` (`booking_meta_utf8mb4` und
+`station_request_days_off`). Gemerkt haben wir es erst nach dem Merge nach main, weil ein
+einzelner Branch fuer sich immer gruen baut.
+
+**Regel vor jedem Merge einer Migration:**
+
+1. Versionsnummer gegen die **zuletzt vergebene Nummer auf `main`** pruefen, nicht gegen den
+   eigenen Branchpunkt. Bei parallelen Sessions/Entwicklern ist der Branchpunkt veraltet.
+2. Kollidiert sie, die eigene Datei **umbenennen** (Inhalt bleibt) und neu pushen — die naechste
+   freie Nummer nehmen, nicht die fremde verschieben.
+3. Migrationen **idempotent** schreiben (`ADD COLUMN IF NOT EXISTS` o. ae.). Spalten werden bei
+   dringenden Faellen vorab manuell auf der prod-DB angelegt; eine nicht-idempotente Migration
+   scheitert dann beim Deploy.
+4. staging und prod haben **getrennte Datenbanken** — ein Fix auf einer Seite heilt die andere
+   nicht.
+
+**Verwandter Fehlerfall:** `FlywayValidateException` / „Validate failed" bei einer Migration, die
+inhaltlich laengst angewendet ist (Pod-Kill mitten im langen `ALTER` → Zeile blieb auf
+`success=0`). Dann NICHT die Migration neu laufen lassen, sondern erst den Ist-Zustand der DDL
+pruefen und danach die History-Zeile reparieren
+(`UPDATE flyway_schema_history SET success=1 WHERE version='…'`) — in **beiden** Datenbanken.
+
 ## Hosting & Serving-Kette
 
 Hosting: **DigitalOcean** (VPS-Droplets + Managed Kubernetes). Kein Managed-WP-Hoster.

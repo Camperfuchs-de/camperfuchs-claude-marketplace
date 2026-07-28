@@ -9,6 +9,20 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.31.0 (2026-07-28)
+
+- **`camperfuchs-projekt`: neuer Abschnitt „Datenbank-Migrationen (Flyway)".** Zwei Migrationen
+  mit derselben Versionsnummer sind ein harter Startfehler („Found more than one migration with
+  version X") — jeder neue Backend-Pod crasht, die ganze Umgebung antwortet 503, nicht nur das
+  neue Feature. Am 27./28.07.2026 hat das staging lahmgelegt: zwei parallel entwickelte Branches
+  vergaben beide `V2.1.15` (`booking_meta_utf8mb4` von Bahti und `station_request_days_off`).
+  Ein einzelner Branch baut fuer sich immer gruen — auffallen kann es erst nach dem Merge.
+  Aufgenommen sind die Regel (Nummer gegen den aktuellen `main`-Stand pruefen, nicht gegen den
+  eigenen Branchpunkt), das Vorgehen bei Kollision (eigene Datei umbenennen), die Pflicht zur
+  Idempotenz und der verwandte Fall `FlywayValidateException` bei `success=0`-Zeilen (History-Zeile
+  reparieren statt Migration neu laufen lassen — in BEIDEN Datenbanken, staging und prod sind
+  getrennt).
+
 ## v0.30.0 (2026-07-27)
 
 - camperfuchs-legacy-backend: Umlaut-/Encoding-Falle dokumentiert (Doppel-Encoding in der
