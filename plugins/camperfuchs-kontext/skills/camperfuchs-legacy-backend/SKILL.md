@@ -175,11 +175,47 @@ JS-Escapes `\xc3\xbc` — und `\x` ist in JS ein Latin-1-Codepoint, rendert also
 
 Laeuft minuetlich als root auf srv2 (`$B=/home/gaz/rentanda/web/backend`): heilt index.html
 (Addon-Script-Tags, Google-Maps-Key, main-Bundle-Referenz auf GOLDEN) UND seit 27.07. die
-Addon-Module in `cf-booking-suggest.js`: fehlen die Fingerprints `__cfABMDLoaded`/`__cfRDOLoaded`
+Addon-Module in `cf-booking-suggest.js`: fehlen die Fingerprints `__cfABMDLoaded`/`__cfRDOLoaded`/`__cfCMASKLoaded` (Stand 29.07.2026)
 (Ueberschreiber-Regression), haengt er das Modul additiv aus `$B/cf-modules/<name>.module.js` an
 und bumpt `?v=autoheal<ts>`. Neue Addon-Module deshalb IMMER: (1) als eigene IIFE mit
 `__cfXYZLoaded`-Guard, (2) Modul-Datei in `cf-modules/` ablegen, (3) Zeile in der MOD-Liste des
 Skripts ergaenzen. Wer cf-booking-suggest.js neu schreibt: vorher Fingerprints ALLER Module greppen.
+
+## Kontaktdaten-Maskierung in der Vorgangsansicht (seit 29.07.2026)
+
+Provisions-Leakage-Schutz, serverseitig — nicht nur UI.
+
+- **`ApiBundle/Helper/AccessHelper.php`:** `$cfContactFields` (`email, tel, mobile, street,
+  postal_code, city, birthday`), `cfContactIsMasked()`, `cfMaskContact()`, `cfStripContactInput()`.
+  Maskiert wird für **alle Nicht-Admins** bei `Booking::TYPE_MIETANFRAGE` (1),
+  `TYPE_MIETANFRAGE_ACCEPTED` (2) und `TYPE_MIETANFRAGE_DENIED` (4); frei bei 3/5/6.
+- **`ApiBundle/Controller/BookingController.php`:** drei Einfügungen — `searchAction`
+  (Liste/Grid), `indexAction` (Detail, **nach** dem `$memcacheService->set()`), sowie
+  `cfStripContactInput()` vor `$jsoner->updateFromArray($bookingAr)`.
+
+**Zwei Fallen, die das Ganze sonst kaputt machen:**
+
+1. **Die UI schickt beim Speichern das komplette Buchungsobjekt zurück.** Ohne
+   `cfStripContactInput()` überschreibt der erste speichernde Vermieter die echten Kontaktdaten
+   mit den maskierten Leerwerten. Ausgabe UND Eingabe absichern.
+2. **Die Maskierung muss NACH dem Memcache-Set sitzen**, sonst landet ein maskiertes JSON im
+   geteilten Cache und Admins bekommen leere Felder serviert.
+
+**Rollen-Realität (gemessen 29.07.2026):** Backend-Accounts mit Stations-Zuordnung sind
+10 x `ROLE_ADMIN`, 104 x `ROLE_STATION`, **241 x `ROLE_USER`**. Eine Regel auf `ROLE_STATION`
+hätte 241 Vermieter-Logins ungeschützt gelassen — deshalb prüft `cfContactIsMasked()` gegen
+`isAdmin()`, nicht gegen eine Vermieter-Rolle.
+
+**Frontend-Hinweis** statt leerer Felder: Addon-Modul `cf-modules/cf-cmask.module.js`
+(Guard `__cfCMASKLoaded`), liest `GET /api/bookings/{id}` und reagiert nur auf
+`contactMasked === true`. Testschalter ohne Vermieter-Login:
+`window.__cfCMASKforce = true` in der Browser-Konsole. Vermieter-Testzugang existiert
+(`vermieter-test@camperfuchs.de`, ROLE_USER, Stationen 3587 + 3869).
+
+**PII-freies Verifikations-Rezept:** Kernel booten (`sudo -u www-data php`), `BookingJsoner` +
+`cfMaskContact` auf echte Datensätze anwenden und **nur Zähler** ausgeben (wie viele Felder
+befüllt, Flag ja/nein) — nie Werte. So lässt sich beweisen, dass Buchungen sichtbar bleiben und
+Anfragen nicht lecken, ohne Kundendaten zu dumpen.
 
 ## Verwandte Skills
 `camperfuchs-legacy-srv2-mail` (SSH-Zugang, sicherer Edit-Workflow, Mail/DMARC),

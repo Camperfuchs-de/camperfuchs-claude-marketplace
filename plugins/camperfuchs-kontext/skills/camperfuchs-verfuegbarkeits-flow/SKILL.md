@@ -7,7 +7,7 @@ description: Betrieb, Änderung und Troubleshooting des Camperfuchs Vermieter-Ve
 
 > **NEU (14.07.2026) — eigene Skill für "Alternativen anfragen":** Der Button "Freie Alternativen anfragen" in der NEIN-Info-Mail (Modul 5), die Picker-Seite mit freien Fahrzeugen + Filtern (Personen/minBeds, Bauart, Preis, Haustiere, Umkreis), der direkte Anfrage-Versand an den jeweiligen Alt-Vermieter und der Backend-Endpoint `landlord-contact` sind in einem EIGENEN Make-Szenario **6559455** (Hook `m5jc…`) + Backend. Dafür die Skill **`camperfuchs-nein-alternativen-anfragen`** nutzen. Hier (5482694/6030776) geht es um den Grund-Flow (JA/NEIN/Rückfrage, Tracking, Mieter-Entwurf, Vermieter-eigener Picker Modul 20).
 
-> **NEU (15./16.07.2026) — Kontaktdaten-Maskierung bei Anfrage-Fahrzeugen ist LIVE:** Details im Abschnitt „Kontaktdaten-Maskierung" unten. Kurz: maskierte Anfragen kommen als office@-Mail mit Marker-Zeilen an, 5482694 hat dafür Parser M25 + Router M27 mit Route B (M26 = Mail OHNE Telefon/Anrufen/WhatsApp und OHNE mieter= in den Button-URLs), 6030776 holt die Mieter-Mail per Datastore-Fallback und schickt nach JA automatisch die Kontaktdaten-Mail (M60) an den Vermieter.
+> **NEU (15./16.07.2026) — Kontaktdaten-Maskierung bei Anfrage-Fahrzeugen ist LIVE:** Details im Abschnitt „Kontaktdaten-Maskierung" unten. Kurz: maskierte Anfragen kommen als office@-Mail mit Marker-Zeilen an, 5482694 hat dafür Parser M25 + Router M27 mit Route B (M26 = Mail OHNE Telefon/Anrufen/WhatsApp und OHNE mieter= in den Button-URLs), 6030776 holt die Mieter-Mail per Datastore-Fallback. ⚠️ **Seit 29.07.2026 schickt 6030776 die Kontaktdaten NICHT mehr automatisch bei JA** — M60 ist entfernt, die Freigabe ist ein eigener Klick (Szenario 6752917). Siehe Abschnitt „Übergabepunkt“.
 
 Arbeitsweise (chirurgische Blueprint-Edits, validate vor update) steht in `camperfuchs-make` — die gilt hier immer mit. ⚠️ Korrektur 15.06.: der Make-**Hook** `hook.eu1.make.com/…` IST aus der Sandbox per `curl` erreichbar (siehe Test-Rezept), auch wenn die make.com-**App/API** es nicht ist.
 
@@ -19,7 +19,7 @@ Arbeitsweise (chirurgische Blueprint-Edits, validate vor update) steht in `campe
 - ohne `confirm`-Param: bei **NEIN → Modul 20 Fahrzeug-Picker-Formular** (lädt per JS die freien Fahrzeuge des Vermieters als antippbare Radio-Liste via `by-landlord` — inkl. Kennzeichen hinter dem Namen — plus Freitext-Fallback + „Alternativer Zeitraum"); bei **Rückfrage → Modul 30 Freitext-Formular** (Textfeld „Deine Frage oder Anmerkung" → Param `frage`); bei **JA → Modul 12 Button-Seite**. Alle drei rufen dieselbe URL mit `confirm=1` + allen Params (+ ggf. `alt_zeitraum`/`alt_fahrzeug` aus M20 bzw. `frage` aus M30) auf. Filter: Modul 12 = `confirm notexist` UND `aktion text:notequal nein` UND `aktion text:notequal rueckfrage` (= nur JA + Fallback); Modul 20 = `confirm notexist` UND `aktion text:equal nein`; Modul 30 = `confirm notexist` UND `aktion text:equal rueckfrage`.
 - mit `confirm=1` → Modul 2 Danke-Seite → Modul 13 UpdateRecord (Tracking) → Modul 8 DeleteRecord (24h-Reminder-Stopp, Datastore 124997) → **Router 3 mit DREI Routen** (das Szenario hat insgesamt **38 Module** (inkl. M98/M99 Phase-4 decision-Call)):
   - **NEIN** (Route zu M4): **M40 GetRecord** (DS 131528) → **M42 HTTP** `/api/V1/articles/by-landlord` → **M44 Nominatim-Geocode** → **M4** Kalender-Erinnerung an den Vermieter → **M5** Info-Mail an Björn mit Button „Freie Alternativen anfragen" — Picker-Hook `m5jcmvmvw2dkfoyv6vp9q5i3fla2k31a` mit `alt=1`, `from`/`to` (aus `40.zeitraum`), `address`/`lat`/`lon` (`44.data` bzw. 42-Fallback), `mieter={{if(1.mieter; 1.mieter; 40.mieter)}}`, `vorname`, `betreff`, `personen=40.personen` → **M10 Gmail-ENTWURF an den Mietinteressenten** (to + Filter ebenfalls mit `40.mieter`-Fallback; Betreff „Deine Wohnmobil-Anfrage bei Camperfuchs", personalisiert mit `{{1.vorname}}`, volle Signatur, conditional Alternativ-Absatz — Vorlage: `04_Setup-Anleitungen/Gmail-Signatur-Vorlage.html`). Außerdem **M20 = Vermieter-Picker** (eigene Alternative des ABSAGENDEN Vermieters, zeigt Kennzeichen) — nicht verwechseln mit dem Alt-Vermieter-Picker (Szenario 6559455 → Skill `camperfuchs-nein-alternativen-anfragen`).
-  - **JA** (`aktion=ja`): **M6** Info-Mail an Björn → **M21 GetRecord** (DS 131528) → **M25 HTTP** by-landlord → **M22 Gmail-ENTWURF an den Mietinteressenten** „Gute Nachricht zu deiner Wohnmobil-Anfrage bei Camperfuchs" (dynamisch: Fahrzeugname, Zeitraum, Fahrzeug-Link, Online-Buchen-Button bzw. Anzahlungs-/Überweisungsdaten — 20 % Anzahlung, VOLLER Betrag wenn Mietbeginn ≤ 30 Tage; Vermieter in CC; to + Filter mit `21.mieter`-Fallback; onerror-Fallback **M24** = vereinfachter statischer Entwurf; seit 27.07. M24-to/Filter mit `21.mieter`-Fallback und M22-Formeln `get(map(ifempty(25.data.content; emptyarray); …))` — wirft nicht mehr, wenn das Fahrzeug nicht in by-landlord steckt) → **M60** automatische Kontaktdaten-Mail an den Vermieter (Teil der Kontaktdaten-Maskierung, **M61** = Ignore-Fallback).
+  - **JA** (`aktion=ja`): **M6** Info-Mail an Björn → **M21 GetRecord** (DS 131528) → **M25 HTTP** by-landlord → **M22 Gmail-ENTWURF an den Mietinteressenten** „Gute Nachricht zu deiner Wohnmobil-Anfrage bei Camperfuchs" (dynamisch: Fahrzeugname, Zeitraum, Fahrzeug-Link, Online-Buchen-Button bzw. Anzahlungs-/Überweisungsdaten — 20 % Anzahlung, VOLLER Betrag wenn Mietbeginn ≤ 30 Tage; Vermieter in CC; to + Filter mit `21.mieter`-Fallback; onerror-Fallback **M24** = vereinfachter statischer Entwurf; seit 27.07. M24-to/Filter mit `21.mieter`-Fallback und M22-Formeln `get(map(ifempty(25.data.content; emptyarray); …))` — wirft nicht mehr, wenn das Fahrzeug nicht in by-landlord steckt) → **M62 SearchRecord** + **M63 UpdateRecord** (No-Response-Selbstheilung). ⚠️ **M60 ist seit 29.07.2026 NICHT mehr in dieser Route** — Kontaktdaten gehen erst nach der Freigabe raus (Szenario 6752917); M6 trägt dafür den Button „Kontaktdaten jetzt freigeben“.
   - **RÜCKFRAGE** (`aktion=rueckfrage`): **M7** Info-Mail an Björn — zeigt den Vermieter-Freitext im Beige-Block „Frage des Vermieters" via `{{if(1.frage; 1.frage; "(keine Angabe …)")}}` (`white-space:pre-wrap`) — → **M50–M53 WhatsApp** `sendTemplateMessage` (Template `rueckfrage_kunde::de`, Filter „Mobil + Frage vorhanden", **M51/M53** = Ignore-Fallbacks).
 
 **Webhook-Params:** `aktion` (ja|nein|rueckfrage), `vermieter`, `betreff`, `mieter` (Mieter-E-Mail), `vorname`, `confirm`, **`alt_zeitraum`/`alt_fahrzeug`** (optional, nur aus dem NEIN-Formular Modul 20), **`frage`** (optional, nur aus dem Rückfrage-Formular Modul 30). Neue Params kommen dynamisch durch (kein `metadata.interface`-Eintrag nötig — vgl. `alt_*`/`frage`).
@@ -85,9 +85,83 @@ Provisions-Leakage-Schutz: Bei Mietanfragen auf Fahrzeuge, die an der Station NI
 
 **5482694:** M7-Filter lässt office-TO-Mails MIT Marker durch (OR-Gruppe `1.text contains "Kontaktweitergabe: maskiert"`); Parser **M25** zieht `Vermieter-Mail:` → `25.vermietermail`; AddRecord M13 keyed auf `if(25.vermietermail; 25.vermietermail; 1.to[1].address)`; Router **M27**: Route A = M2 unverändert (Filter `25.vermietermail notcontain @`), Route B = **M26** an `{{25.vermietermail}}` — OHNE Telefon-Zeile, OHNE Anrufen/WhatsApp-Buttons, OHNE `mieter=` in den Button-URLs, mit Hinweis „Kontaktdaten senden wir dir automatisch, sobald du bestätigst". Trigger-Query enthält `-subject:"TEST SYSTEM"` → Staging-Tests können den Flow nie auslösen.
 
-**6030776 (Mieter-Mail-Fallback, 16.07.):** Überall wo die Mieter-Mail gebraucht wird gilt `if(1.mieter; 1.mieter; <GetRecord>.mieter)` — M5 Alternativen-Button-URL + M10 NEIN-Draft (40.mieter), M22 JA-Draft + M60 Kontaktdaten-Mail (21.mieter). Alt-Mails MIT `mieter=`-Param laufen unverändert. **M60** = Klon-Struktur von M6, feuert nach M22 bei jedem JA (auch unmaskiert — bewusst), onerror Ignore.
+**6030776 (Mieter-Mail-Fallback, 16.07.):** Überall wo die Mieter-Mail gebraucht wird gilt `if(1.mieter; 1.mieter; <GetRecord>.mieter)` — M5 Alternativen-Button-URL + M10 NEIN-Draft (40.mieter), M22 JA-Draft + M60 Kontaktdaten-Mail (21.mieter). Alt-Mails MIT `mieter=`-Param laufen unverändert. **M60** war bis 29.07.2026 die Klon-Struktur von M6 und feuerte bei jedem JA — sie ist jetzt aus 6030776 entfernt und lebt als Modul 60 im Freigabe-Szenario **6752917** weiter.
 
-**Fallen:** (1) Beim Deploy der Spring-Seite auf staging/prod hing der Rollout ZWEIMAL an Cluster-Kapazität („0/2 nodes: Insufficient cpu") — alter Pod bediente weiter, obwohl Deploy grün. Nach Backend-Deploys Pod-Image prüfen; hängt er Pending: EINEN alten Pod löschen, bei altem-RS-Pending-Pod Deployment kurz auf replicas=1→2. (2) Test-Rezept für den JA-Fallback: Record in DS 131528 anlegen (Key `vermieter|betreff`), confirm-URL OHNE mieter-Param aufrufen, Kontaktdaten-Mail + Draft prüfen, Records in 131528+131793 löschen. (3) Skripte/Backups: `.secrets/make-5482694-*.js`, `make-6030776-*`, `make-p2-mieter-lookup.js`. Rest-Lücke (Phase 2b, bewusst offen): Backend-Vorgangsansicht zeigt Kontaktdaten; `booking.message`-Freitext ungefiltert.
+**Fallen:** (1) Beim Deploy der Spring-Seite auf staging/prod hing der Rollout ZWEIMAL an Cluster-Kapazität („0/2 nodes: Insufficient cpu") — alter Pod bediente weiter, obwohl Deploy grün. Nach Backend-Deploys Pod-Image prüfen; hängt er Pending: EINEN alten Pod löschen, bei altem-RS-Pending-Pod Deployment kurz auf replicas=1→2. (2) Test-Rezept für den JA-Fallback: Record in DS 131528 anlegen (Key `vermieter|betreff`), confirm-URL OHNE mieter-Param aufrufen, Kontaktdaten-Mail + Draft prüfen, Records in 131528+131793 löschen. (3) Skripte/Backups: `.secrets/make-5482694-*.js`, `make-6030776-*`, `make-p2-mieter-lookup.js`. Phase 2b ist seit 29.07.2026 GESCHLOSSEN: Die Backend-Vorgangsansicht maskiert serverseitig (`AccessHelper::cfMaskContact`, siehe Skill `camperfuchs-legacy-backend`), und `bemerkung` wird in M2+M26 beim Rendern gefiltert.
+
+## Übergabepunkt: Kontaktdaten erst nach Freigabe (seit 29.07.2026)
+
+Ein JA ist nur eine Verfügbarkeitszusage — keine Buchung, kein Geld. Deshalb hängt die
+Kontaktdaten-Mail nicht mehr am JA-Klick.
+
+**Warum kein Automatik-Trigger auf "bezahlt":** Der JA-Draft M22 nennt bei nicht-`onlineBookable`-
+Fahrzeugen eine **Überweisung an die Kreissparkasse Limburg**. Ein Geldeingang auf dem Bankkonto
+erzeugt kein Systemereignis — `booking_payments` / `online=1` feuern dort nie von allein. Da 82 %
+der Anfragen Anfrage-Fahrzeuge sind, wäre eine reine Automatik für genau die Leakage-Fälle
+wirkungslos geblieben.
+
+| Baustein | ID / Ort |
+|---|---|
+| Freigabe-Szenario | **6752917** "CF Kontaktfreigabe", Hook **3469287**, `https://hook.eu1.make.com/33f9mnt861irh0qw2mwuypw79sdp0utg` |
+| Freigabe-Button | 6030776 **M6** (JA-Info-Mail an Björn), Link mit `vermieter`/`betreff`/`mieter` (encodeURL) |
+| 48h-Rückfall | **6752962** "CF 48h-Rueckfall", alle 3 h |
+
+**Freigabe-Szenario** ist zweistufig wie 6030776 (Scanner-Schutz): ohne `confirm` → Seite mit
+Formular-Button, mit `confirm=1` → Danke-Seite + GetRecord (ID 21) + Kontaktdaten-Mail (M60-HTML) +
+UpdateRecord. Ops: 2 = Bestätigungsseite, 5 = volle Freigabe-Kette. Der GetRecord behielt bewusst
+die ID **21**, damit keine einzige Mapper-Referenz im übernommenen M60-HTML umgeschrieben werden musste.
+
+**Warum ein eigenes Szenario und keine fünfte Route in 6030776:** Ein zweiter Aufruf desselben Hooks
+läuft durch die lineare Kette und stirbt an **M17 AddRecord (Duplicate → Ignore)** bei 3 Ops — die
+bekannte Falle. Getrennter Hook = getrennte Kette.
+
+**Status-Maschine in DS 131528:** `ja` → `ja_freigegeben` (Freigabe geklickt) bzw. `ja_rueckfall`
+(48 h ohne Buchung). `offen` bleibt unangetastet — Nudge 6235553 und M62/M63 arbeiten unverändert.
+Der Rückfall greift erst ab Unix-Zeit **1785343000** (Cutoff = Umbau-Zeitpunkt); ohne ihn hätten
+beim ersten Lauf 10 echte Vermieter eine "Zeitraum wieder frei"-Mail für längst erledigte Vorgänge
+bekommen.
+
+### Datastore-Struktur 444568 war unvollständig (29.07.2026)
+
+5482694 (M13 AddRecord) schrieb seit jeher `telefon`, `ort` und `personen` — die Felder fehlten in
+der Struktur und wurden **still verworfen**. Folgen: die Kontaktdaten-Mail mappte `{{21.telefon}}`
+und ging **ohne Telefonnummer** raus, und der Personenzahl-Filter im Alt-Vermieter-Picker
+(`personen=40.personen`, Szenario 6559455) lief leer. Die Struktur enthält jetzt zusätzlich
+`telefon`, `ort`, `personen`, `kontakt_freigegeben`, `rueckfall`.
+
+**Merksatz:** Ein Mapper, der in ein nicht existierendes Datastore-Feld schreibt, wirft keinen
+Fehler. Nach jeder Mapper-Erweiterung die Struktur gegenprüfen.
+
+### Make-Fallen, teuer gelernt am 29.07.2026
+
+- **`datastore:SearchRecord` liefert die Felder unter `{{N.data.feld}}`**, nur `{{N.key}}` ist flach.
+  Falsche Referenzen sind leer, ein nachgelagerter Filter blockt lautlos, die Ausführung meldet
+  trotzdem "Erfolg" mit 1 Op. (Der Bestand macht es in 6030776 M63 schon richtig: `62.data.zeitraum`.)
+- **`date:greater` / `date:less` greifen in Filtern NICHT.** Zeitvergleiche numerisch bauen:
+  `{{parseNumber(formatDate(2.data.beantwortet; "X"))}}` gegen
+  `{{parseNumber(formatDate(addHours(now; -48); "X"))}}`.
+- **`notexist` auf Datastore-Feldern funktioniert nicht** → Zustände über ein Status-Feld führen,
+  nicht über "Feld leer".
+- **Scheduling per API:** `type` muss aus `immediately, indefinitely, once, daily, weekly, monthly,
+  yearly, on-demand` kommen; `interval` (Sekunden) ist ein Zusatzfeld. `type:"interval"` wird
+  abgelehnt, Webhook-Szenarien brauchen `immediately`.
+- **`pg[limit]` max 100** bei `/data-stores/{id}/data` — mit 200 kommt eine leere Liste zurück, was
+  wie ein geleerter Datastore aussieht.
+- **Blueprint-Edits nie auf dem rohen JSON-String** mit Regex-Ersetzungen, die Backslashes
+  enthalten: `\b` ist in JSON ein Steuerzeichen (Backspace) → Parse-Fehler. Rekursiv auf
+  Objektebene ersetzen und das Escaping `json.dump` überlassen.
+
+### Bemerkungs-Freitext wird gefiltert (M2 + M26, seit 29.07.2026)
+
+`{{7.bemerkung}}` ist ersetzt durch eine doppelte `replace()`-Formel, die Rufnummern und
+E-Mail-Adressen durch `[Kontaktdaten entfernt]` ersetzt (Muster im Projektordner
+`01_Architektur-Tech/Maskierung-Phase2b_2026-07-29.md`).
+
+Gefiltert wird erst beim **Rendern** — der M7-Parser hat die Rohdaten längst gelesen, die Kette
+bleibt unberührt. ⚠️ **Punkte dürfen NICHT als Trennzeichen in der Telefon-Zeichenklasse stehen**,
+sonst schwärzt der Filter Reisezeiträume wie "01.08.2026 - 17.08.2026". Testrezept ohne echte Mail:
+Wegwerf-Szenario Webhook → `WebhookRespond`, das die gefilterte Zeichenkette zurückgibt, per curl
+alle Muster durchprobieren, danach Szenario + Hook löschen.
 
 ## Blueprint validieren + updaten (Schema-Falle)
 
@@ -100,7 +174,7 @@ M60/M61, M50–M53 und die Datastore-Fallbacks **still gelöscht** (am 20.07. re
 
 1. Vor JEDEM `scenarios_update` ein FRISCHES `scenarios_get` als Basis nehmen — nie einen alten
    Download, ein Backup oder einen Blueprint aus einer früheren Session.
-2. Modul-ANZAHL gegenprüfen (6030776 = **38 Module**) und Marker checken: `m5jc` muss in
+2. Modul-ANZAHL gegenprüfen (6030776 = **40 Module** inkl. onerror-Handler — seit dem M60-Ausbau am 29.07.2026, vorher 42) und Marker checken: `m5jc` muss in
    M5 vorkommen (seit Phase 4 nur noch dort; M50=GetRecord, M60 ohne Hook-Link).
 3. Pre-Update-Backup des frischen Blueprints nach `outputs/` legen.
 4. Nach dem Update Marker + Signatur-Token erneut prüfen: `streak-link.com` 27x, mail-sig 21x

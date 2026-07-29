@@ -9,6 +9,35 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.32.0 (2026-07-29)
+
+**Übergabepunkt verschoben — Kontaktdaten erst nach Freigabe (`camperfuchs-verfuegbarkeits-flow`)**
+
+- M60 ist aus der JA-Route von 6030776 **entfernt**. Ein JA ist nur eine Verfügbarkeitszusage;
+  die Kontaktdaten gehen jetzt erst nach einem bewussten Klick raus.
+- Neu: Freigabe-Szenario **6752917** (Hook 3469287, zweistufig gegen Scanner) und
+  48h-Rückfall **6752962** (alle 3 h, „Zeitraum wieder frei" an den Vermieter statt Kontaktdaten).
+- Status-Maschine in DS 131528: `ja` → `ja_freigegeben` / `ja_rueckfall`; Cutoff gegen Alt-Bestand.
+- Warum keine Automatik auf „bezahlt": Anfrage-Fahrzeuge werden per Überweisung bezahlt — kein
+  Systemereignis. Dokumentiert, damit es nicht nochmal vorgeschlagen wird.
+- Datenstruktur 444568 war unvollständig: `telefon`, `ort`, `personen` wurden seit jeher still
+  verworfen (Kontaktdaten-Mail ohne Telefonnummer, Personenfilter im Alt-Picker leer).
+- Neue Make-Fallen: `SearchRecord` liefert `{{N.data.feld}}`; `date:`-Operatoren greifen nicht;
+  `notexist` funktioniert nicht; Scheduling-`type`-Werte; `pg[limit]` max 100; keine
+  Regex-Ersetzungen mit `\b` auf rohem Blueprint-JSON.
+- Bemerkungs-Freitext wird in M2+M26 beim Rendern gefiltert (Rufnummern/E-Mails), Reisedaten
+  bleiben stehen.
+
+**Maskierung Phase 2b geschlossen (`camperfuchs-legacy-backend`)**
+
+- Vorgangsansicht maskiert Kontaktdaten serverseitig für alle Nicht-Admins bei Anfrage-Typen
+  (1/2/4); Buchungen bleiben unverändert sichtbar.
+- Zwei Fallen dokumentiert: Schreibrichtung absichern (die UI schickt das ganze Objekt zurück)
+  und Maskierung NACH dem Memcache-Set.
+- Rollen-Realität: 241 Vermieter-Logins sind `ROLE_USER`, nicht `ROLE_STATION` — Regel gegen
+  `isAdmin()` statt gegen eine Vermieter-Rolle.
+- Frontend-Hinweis als Addon-Modul `cf-cmask` (cron-fest), inkl. Testschalter.
+
 ## v0.31.0 (2026-07-28)
 
 - **`camperfuchs-projekt`: neuer Abschnitt „Datenbank-Migrationen (Flyway)".** Zwei Migrationen

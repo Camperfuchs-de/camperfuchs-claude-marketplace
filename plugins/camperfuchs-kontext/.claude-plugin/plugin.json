@@ -1,6 +1,6 @@
 {
     "name":  "camperfuchs-kontext",
-    "version":  "0.31.0",
+    "version":  "0.32.0",
     "description":  "Geteilter technischer Projektkontext fuer Camperfuchs/Rentanda â€” Architektur, Infrastruktur, Repo \u0026 Deploy, Caching, SEO-Setup und Konventionen, plus WP-502-Notfall-Runbook, Cloudflare-Cache-Purge, Agent-Readiness/AEO-Check, der Vermieter-Verfuegbarkeits-Flow (Make 5482694/6030776), der Frontend-Ship-Loop und die Sammelanfrage/Merkzettel-Landkarte. Damit Bahtis Assistent ueber die gemeinsamen Projekte Bescheid weiss. Enthaelt KEINE Tokens/Passwoerter.",
     "author":  {
                    "name":  "Rentanda GmbH / Camperfuchs"
