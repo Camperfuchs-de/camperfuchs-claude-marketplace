@@ -9,6 +9,22 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.33.0 (2026-07-30)
+
+**Deploy-Stage bricht ab: Helm-Installer faellt still auf 3.1.2 zurueck (`camperfuchs-frontend-feature-shippen`)**
+
+- Neuer Abschnitt zum am 30.07.2026 aufgetretenen Fehlschlag: Build-Stage gruen, Deploy-Stage
+  sofort tot mit `Error: unknown flag: --dependency-update`. Ursache ist `HelmInstaller@1` ohne
+  feste Version — der GitHub-API-Lookup schlaegt fehl und der Task faellt still auf seine
+  Default-Version Helm 3.1.2 zurueck, die das Flag nicht kennt.
+- Dauerhafter Fix ist im Monorepo: `helmVersionToInstall: '4.2.3'` in
+  `ci/deploy-prod-pipelines.yml` und `ci/deploy-staging-pipelines.yml`. Nie auf `latest`
+  zuruecksetzen; der Pin wirkt erst, wenn er bis in den jeweiligen Deploy-Branch gemergt ist.
+- Rezept zum Neustart eines gescheiterten Deploys: Stage-Retry per REST antwortet 204, startet
+  aber nichts — stattdessen die Deploy-Definition frisch queuen.
+- Zwei Zeit-Fallen ergaenzt: der Deploy-Auto-Trigger kommt 1–3 Minuten verzoegert (nicht doppelt
+  queuen), und die Approval-ID erscheint erst, wenn die Deploy-Stage wirklich wartet.
+
 ## v0.32.0 (2026-07-29)
 
 **Übergabepunkt verschoben — Kontaktdaten erst nach Freigabe (`camperfuchs-verfuegbarkeits-flow`)**

@@ -216,6 +216,59 @@ Erprobt 14.06.: `leerzustand-fix-staging`, `leerzustand-prod-rollout`,
   ist gemergt. (Merge-Status selbst braucht aber Azure/Browser.)
 - Hashed Next-Chunks → kein Cloudflare-Purge nötig.
 
+## Deploy-Stage bricht ab: Helm-Installer faellt still auf Helm 3.1.2 zurueck
+
+Symptom (30.07.2026, prod-Build 4162): Build-Stage **gruen**, die Deploy-Stage bricht
+sofort ab mit
+
+```
+[command] .../helm/3.1.2/x64/linux-amd64/helm upgrade ... --dependency-update ...
+Error: unknown flag: --dependency-update
+```
+
+Ursache: `HelmInstaller@1` ohne feste Version fragt die GitHub-Releases-API nach der
+neuesten Helm-Version. Schlaegt der Call fehl (TLS-/Netzfehler auf dem self-hosted
+Agent), faellt der Task **still** auf seine Default-Version **Helm 3.1.2** zurueck —
+die kennt `--dependency-update` (gibt es ab Helm 3.7) nicht. Beleg im Log des Tasks
+„Install Helm": `... Using default Helm version v3.1.2.` statt
+`Found tool in cache: helm 4.2.3 x64`.
+
+**Dauerhafter Fix liegt seit 30.07.2026 im Repo** (`ci/deploy-prod-pipelines.yml` und
+`ci/deploy-staging-pipelines.yml`):
+
+```yaml
+- task: HelmInstaller@1
+  displayName: 'Install Helm'
+  inputs:
+    helmVersionToInstall: '4.2.3'
+```
+
+Feste Version = kein API-Lookup und Cache-Hit auf dem Agent. **Nie auf `latest`
+zuruecksetzen.** Taucht der Fehler trotzdem auf: pruefen, ob der Deploy-Branch die
+gepinnte YAML schon hat — die Deploy-Pipeline liest ihre YAML aus dem jeweiligen
+Branch, der Pin wirkt also erst, wenn er bis `staging` bzw. `prod` durchgereicht ist.
+
+### Gescheiterten Deploy neu anstossen
+
+`PATCH /build/builds/{id}/stages/{stageName}` mit `{"state":"retry"}` antwortet zwar
+**204**, startet die Stage aber **nicht** neu (Timeline bleibt auf `attempt 1 / failed`).
+Verlaesslich ist ein frischer Lauf der Deploy-Definition:
+
+```
+POST /build/builds?api-version=7.1   {"definition":{"id":13},"sourceBranch":"refs/heads/prod"}
+# staging analog: {"id":12} + refs/heads/staging
+```
+
+Der neue Lauf baut nochmal und laeuft wieder ins Environment-Approval-Gate → dort freigeben.
+
+### Zwei Zeit-Fallen drumherum
+- **Auto-Trigger kommt verzoegert:** nach dem Merge startet `*-build-and-deploy` teils
+  erst 1–3 Minuten spaeter. Nicht sofort nachqueuen, sonst laufen zwei Deploys parallel
+  (den ueberfluessigen per `PATCH /build/builds/{id}` `{"status":"cancelling"}` stoppen).
+- **Das Approval erscheint spaet:** `GET /pipelines/approvals?state=pending` liefert
+  waehrend der Build-Stage noch nichts. Erst wenn die Deploy-Stage wartet, gibt es eine
+  Approval-ID — weiter pollen statt anzunehmen, es gebe kein Gate.
+
 ## PR-Build-Pipeline reparieren (wenn `pr-build-pipeline` dauerhaft rot bleibt)
 
 Die CI-Prüfung auf PRs läuft aus Branch `azure-pipelines`, Datei
