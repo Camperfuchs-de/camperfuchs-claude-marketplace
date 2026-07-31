@@ -9,6 +9,24 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.34.0 (2026-07-31)
+
+**Neue Skill `camperfuchs-zahlungserinnerungen` — die zwei Zahlungserinnerungs-Jobs auf srv2**
+
+- `cf-zusage-reminder.php` (neu, live seit 31.07., Cron 9:35): erinnert den Mieter, wenn eine
+  Vermieter-Zusage vorliegt, aber **kein Zahlungseingang** verbucht ist. Stufen Tag 3 und Tag 7,
+  Betrag 20 % Anzahlung bzw. voller Betrag unter 30 Tagen bis Reisebeginn.
+- `cf-payreminder.php` (Cron 9:20): Restbetrag 40/30 Tage vor Reisebeginn, nur wo schon Geld ueber
+  Camperfuchs floss, mit Station-Opt-in. Die Skill grenzt beide sauber gegeneinander ab.
+- **Trigger-Wahrheit dokumentiert:** die Zusage steht seit 25.07.2026 in `bookings.meta` als
+  `vermieterDecision: "ja"` plus `vermieterDecisionAt`; `type=2` (accepted) wird nicht benutzt;
+  Zahlungseingang sind die negativen `booking_positions`, nicht `amountPaid`.
+- Enthaelt Guards (Altbestands-Sperre, Overlap-Check, Dedupe-Tabellen), den srv2-Arbeitsweg
+  (Git-ssh statt kaputtem Windows-ssh, base64-Block, scp, `php -l`, Dry-Run, `--preview`),
+  die Textregeln fuer Kundenmails und die Parallel-Session-Falle.
+
+---
+
 ## v0.33.0 (2026-07-30)
 
 **Deploy-Stage bricht ab: Helm-Installer faellt still auf 3.1.2 zurueck (`camperfuchs-frontend-feature-shippen`)**
