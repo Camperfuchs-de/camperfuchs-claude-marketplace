@@ -9,6 +9,22 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.36.0 (2026-08-01)
+
+**Vermieter koennen die Anzahlungs-Erinnerung abschalten (`camperfuchs-zahlungserinnerungen`)**
+
+- Neues **Opt-OUT** je Standort (`cf_zusage_opt.disabled`, Default AN, Schalter im Backend-Kalender
+  ueber `cf-zusageopt.php` + `cf-zusageopt.js`). Bewusst anders als beim Restbetrag-Job, der ein
+  Opt-IN hat: bei der Anzahlung geht das Geld an uns.
+- Eigene Dateien statt Eingriff in die Nachbar-Skripte, die Karte wird per appendChild angedockt.
+- Besitzpruefung ueber X-Token gegen /api/login (Loopback per CURLOPT_RESOLVE wegen des alten
+  CA-Bundles auf srv2), setzen nur fuer eigene Standorte.
+- Falle dokumentiert: die Script-Tags in der Backend-index.html tragen `type="text/javascript"` —
+  ein Anker ohne das Attribut findet nichts und der Patch bricht ab.
+- Ausserdem: der Job filtert Anhaenger ueber `articles.portals` aus.
+
+---
+
 ## v0.35.0 (2026-08-01)
 
 **Antwort-Buttons fuer Mieter (`camperfuchs-zahlungserinnerungen`)**

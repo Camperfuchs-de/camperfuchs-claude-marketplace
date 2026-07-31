@@ -22,7 +22,7 @@ Zwei Scripts, klare Arbeitsteilung. Nie das eine im anderen nachbauen.
 |---|---|---|
 | Fall | Zusage da, **Zahlungseingang 0** | **Restbetrag** offen, Anzahlung ist da |
 | Zeitpunkt | Tag 3 und Tag 7 nach Zusage/Buchungsanlage | 40 und 30 Tage vor Reisebeginn |
-| Opt-in | keins (unser Geld) | `cf_payreminder_opt.enabled=1` je Station, Default AUS |
+| Steuerung Vermieter | **Opt-OUT** `cf_zusage_opt.disabled`, Default AN | Opt-IN `cf_payreminder_opt.enabled`, Default AUS |
 | Cron | `35 9 * * *` | `20 9 * * *` |
 | State | `cf_zusage_reminder` | `cf_payreminder` |
 | Empfaenger | Mieter, BCC b.dunker + Vermieter | Mieter, BCC b.dunker + Vermieter |
@@ -107,6 +107,24 @@ Du-Form, kein Druck, keine Reservierungsversprechen ausser dem etablierten "soba
 blocken wir das Wohnmobil verbindlich fuer dich". Jede Mail bekommt eine Ausstiegszeile ("wenn du dich anders
 entschieden hast, kurze Antwort genuegt") und den Satz, dass sich die Mail mit einer schon getaetigten Zahlung
 ueberschnitten haben kann. Betreffzeilen mit echten Umlauten, im HTML-Body Entities.
+
+## Opt-out der Vermieter (seit 01.08.2026)
+
+Standard ist AN, weil es um die Anzahlung auf unser Konto geht. Wer lieber selbst nachfasst, schaltet
+es je Standort ab: Backend-Kalender, Karte "Zahlungserinnerungen" unten rechts, Abschnitt "Erinnerung
+bei ausstehender Anzahlung".
+
+- `cf-zusageopt.php` (Backend-Webroot) + `cf-zusageopt.js`, Tabelle `cf_zusage_opt` (station_id, disabled).
+  Der Job ueberspringt Standorte mit `disabled=1` und schreibt das in die uebersprungen-Liste.
+- **Eigene Dateien statt Eingriff in cf-payreminder.js** (andere Session). Die Karte wird per
+  `appendChild` an `#cf-pr-panel` gehaengt; fehlt sie, rendert das Script eine eigene Karte unten rechts.
+- **Besitzpruefung:** X-Token gegen `/api/login`, setzen nur fuer eigene Standorte (403 sonst).
+  Der Login-Aufruf laeuft per `CURLOPT_RESOLVE` auf 127.0.0.1, weil srv2 ein CA-Bundle von 2019 hat.
+- **Admins sehen alle Standorte** (bei Bjoern 338), deshalb hat die Liste ab 12 Eintraegen ein Suchfeld
+  und `max-height:220px`.
+- **index.html-Falle:** die Script-Tags stehen dort als
+  `<script type="text/javascript" src="...">`. Ein Anker ohne `type` findet nichts, der Patch bricht dann
+  mit "Anker 0x" ab. Immer erst die exakte Schreibweise per grep holen, Backup anlegen, Treffer zaehlen.
 
 ## Bekannte Fallen
 
