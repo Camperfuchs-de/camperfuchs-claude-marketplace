@@ -1,0 +1,40 @@
+# Haelt camperfuchs-kontext.plugin automatisch am Quellbaum.
+# Laeuft bei jedem Push auf main, der das Plugin oder den Changelog anfasst.
+# Prueft alle SKILL.md, scannt auf Secrets, baut das Paket und committet es zurueck,
+# wenn es abweicht. Der eigene Commit traegt [skip ci], loest also keinen zweiten Lauf aus.
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - plugins/*
+      - CHANGELOG.md
+      - ci/plugin_pack.py
+
+pr: none
+
+pool:
+  name: macos
+
+steps:
+  - checkout: self
+    persistCredentials: true
+    clean: true
+
+  - script: python3 ci/plugin_pack.py --write
+    displayName: 'Skills pruefen und Paket bauen'
+
+  - script: |
+      set -e
+      if git diff --quiet -- camperfuchs-kontext.plugin; then
+        echo "Paket war bereits aktuell, nichts zu committen."
+        exit 0
+      fi
+      git config user.email "build@camperfuchs.de"
+      git config user.name "Azure Pipeline"
+      git add camperfuchs-kontext.plugin
+      git commit -m "chore: Plugin-Paket automatisch neu gebaut [skip ci]"
+      git push origin HEAD:main
+      echo "Paket neu gebaut und gepusht."
+    displayName: 'Paket zurueckcommitten, falls veraltet'
