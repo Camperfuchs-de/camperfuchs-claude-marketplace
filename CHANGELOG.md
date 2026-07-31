@@ -9,6 +9,25 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.35.0 (2026-08-01)
+
+**Antwort-Buttons fuer Mieter (`camperfuchs-zahlungserinnerungen`)**
+
+- Zusage-Mail (Make 6030776, Modul 22) und Zahlungserinnerung tragen jetzt drei Buttons:
+  "Ich ueberweise in den naechsten Tagen" (10 Tage Ruhe), "Ich habe noch eine Frage" (5 Tage Ruhe),
+  "Ich buche doch nicht" (Schluss, Info an office@ und Vermieter). Neuer Endpoint
+  `cf-payanswer.php` im Backend-Webroot, Antworten in `cf_zusage_answer`.
+- **Zwei Stufen sind Pflicht**, weil Mail-Clients Links vorladen: der Link zeigt nur eine Seite mit
+  Bestaetigungs-Button, erst der POST schreibt.
+- Zwei getrennte Signatur-Schluessel (Job und Make), damit der Blueprint-Schluessel nicht der Job-Schluessel ist.
+- **Make kann HMAC:** `substring(sha256("zahle|" + 1.nr; "hex"; "<key>"); 0; 16)` liefert bitgleich dasselbe
+  wie PHPs `hash_hmac` — in einem Wegwerf-Szenario verifiziert.
+- Test-Rezepte ergaenzt: Modul 22 erzeugt nur einen Entwurf, laesst sich also per Webhook-Aufruf gefahrlos
+  pruefen; Gmail-Suche indiziert keine href-Attribute, deshalb ueber sichtbaren Text pruefen.
+- Ausserdem: der Job filtert jetzt auf `articles.portals` mit "cf", blueTrailer-Anhaenger fallen raus.
+
+---
+
 ## v0.34.0 (2026-07-31)
 
 **Neue Skill `camperfuchs-zahlungserinnerungen` — die zwei Zahlungserinnerungs-Jobs auf srv2**

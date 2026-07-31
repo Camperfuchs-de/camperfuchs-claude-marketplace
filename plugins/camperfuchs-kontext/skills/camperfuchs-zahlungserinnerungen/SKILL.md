@@ -7,8 +7,8 @@ description: >-
   Station-Opt-in, 9:20). IMMER nutzen bei "Kunde hat nicht gezahlt", "Erinnerung an Anzahlung/Restbetrag",
   "Zusage erteilt aber kein Geld", "warum bekam Mieter X (k)eine Erinnerung", Aendern von Stufen, Text,
   Betragslogik oder Guards, Tabellen cf_zusage_reminder / cf_payreminder / cf_payreminder_opt,
-  Cron /etc/cron.d/cf-zusage-reminder bzw. cf-payreminder, oder Fragen zum Zusage-Marker
-  bookings.meta.vermieterDecision. NICHT fuer Vermieter-Follow-ups bei offenen Anfragen
+  Cron /etc/cron.d/cf-zusage-reminder bzw. cf-payreminder, Zusage-Marker bookings.meta.vermieterDecision, oder
+  Antwort-Buttons der Mieter (cf-payanswer.php). NICHT fuer Vermieter-Follow-ups bei offenen Anfragen
   (-> camperfuchs-provisions-leakage), Mail-Bounces/DMARC (-> camperfuchs-legacy-srv2-mail),
   Zustell-Badges (-> camperfuchs-mailstatus) oder die JA/NEIN-Buttons selbst
   (-> camperfuchs-vermieter-verfuegbarkeit-buttons).
@@ -73,6 +73,33 @@ Beide: `/usr/local/cf/<name>.php`, Aufruf `sudo -u www-data php … [--live] [--
    b.dunker@camperfuchs.de, ohne die Buchung zu markieren. Ankunft per Gmail-Suche `subject:VORSCHAU` belegen.
 5. **Scharf schalten**: Kommentarzeichen in `/etc/cron.d/cf-…` entfernen, vorher `cp` als `.bak-<ts>`.
    Rollback: Cron-Datei loeschen, Script loeschen, `DROP TABLE cf_zusage_reminder`.
+
+## Antwort-Buttons der Mieter (seit 01.08.2026)
+
+Zusage-Mail UND Erinnerung tragen drei Buttons: *Ich ueberweise in den naechsten Tagen* (10 Tage Ruhe),
+*Ich habe noch eine Frage* (5 Tage Ruhe, Info an office@), *Ich buche doch nicht* (Schluss, Info an
+office@ und an den Vermieter). Antworten landen in `cf_zusage_answer`, der Job liest sie vor jedem Versand.
+
+- **Endpoint:** `/home/gaz/rentanda/web/backend/cf-payanswer.php` → `https://www.camperfuchs.de/backend/cf-payanswer.php`.
+  PHP im Backend-Webroot wird dort ausgefuehrt und ist oeffentlich erreichbar (Vorbild: cf-payreminder-opt.php).
+- **Zwei Stufen sind Pflicht.** Mail-Clients und Scanner laden Links im Hintergrund vor. Der Link aus der
+  Mail zeigt nur eine Seite mit Bestaetigungs-Button, erst der POST schreibt. Getestet: GET schreibt nichts,
+  POST schreibt genau einen Datensatz.
+- **Zwei Schluessel:** `/usr/local/cf/cf-answer.key` signiert die Job-Mails, `/usr/local/cf/cf-answer-make.key`
+  die Links aus Make (der steht im Blueprint, deshalb getrennt). Der Endpoint akzeptiert beide.
+  Signatur = `substr(hash_hmac('sha256', "<aktion>|<bookingId>", key), 0, 16)`.
+- **Make-Seite:** Szenario 6030776, Modul 22 (Gmail-Entwurf "Gute Nachricht"), Button-Block vor dem Satz
+  "Bei Fragen sind wir natuerlich jederzeit fuer dich da". Die Buchungs-ID ist dort als `{{1.nr}}` verfuegbar.
+  Make kann HMAC: `{{substring(sha256("zahle|" + 1.nr; "hex"; "<key>"); 0; 16)}}` — verifiziert, liefert
+  bitgleich dasselbe wie PHP.
+- **Wie man die Make-Seite testet, ohne einen Kunden anzufassen:** Modul 22 erzeugt nur einen ENTWURF.
+  Webhook direkt aufrufen: `hook.eu1.make.com/tu2xumx8...?aktion=ja&confirm=1&nr=533179&vermieter=b.dunker@camperfuchs.de&betreff=TEST&mieter=b.dunker@camperfuchs.de&vorname=Test`.
+  Ein Datastore-Record ist nicht noetig, `1.mieter` reicht fuer den Filter.
+- **Gmail-Suche indiziert keine href-Attribute.** Ob der Block im Entwurf steht, prueft man ueber sichtbaren
+  Text (`list_drafts` mit "Ein Klick genuegt uns"), nicht ueber die URL. Fuer den Beweis, dass eine Make-Formel
+  wirklich rechnet, lohnt ein Wegwerf-Szenario (Webhook → WebhookRespond mit der Formel, danach loeschen).
+- **Mailgun-Click-Tracking** schreibt die Button-Links auf `email.mg.camperfuchs.de` um. Der Redirect
+  funktioniert und die Zwei-Stufen-Logik bleibt wirksam.
 
 ## Textregeln
 
