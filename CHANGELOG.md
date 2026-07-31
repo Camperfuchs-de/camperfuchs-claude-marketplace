@@ -9,6 +9,21 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.37.0 (2026-08-01)
+
+**Mail-Schalter liegen jetzt unter Einstellungen -> Benachrichtigungen (`camperfuchs-zahlungserinnerungen`)**
+
+- Beide Erinnerungen (Anzahlung nach Zusage, Restbetrag vor Reisebeginn) werden an einer Stelle
+  geschaltet: ein Modal mit einer Zeile je Standort und zwei Haken, Suchfeld ab 10 Standorten.
+  Die Karte im Belegungskalender entfaellt.
+- `cf-benachrichtigungen.js` haengt den Menuepunkt per DOM ins Einstellungen-Dropdown, wie es der
+  Eintrag "€ Abrechnung" vormacht. Bewusst KEIN Bundle-Rebuild: der Azure-master hat gegenueber
+  srv2 rund vier Jahre Drift, das Ergebnis waere identisch, das Risiko deutlich hoeher.
+- Neue Falle: der Sticky-Kopf des Belegungskalenders zeichnet sich durch Overlays mit z-index 10000,
+  obwohl elementFromPoint das Overlay meldet. Erst 2147483000 + isolation:isolate half.
+
+---
+
 ## v0.36.0 (2026-08-01)
 
 **Vermieter koennen die Anzahlungs-Erinnerung abschalten (`camperfuchs-zahlungserinnerungen`)**

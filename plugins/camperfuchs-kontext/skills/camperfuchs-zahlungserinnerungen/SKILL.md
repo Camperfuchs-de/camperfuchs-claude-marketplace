@@ -108,25 +108,31 @@ blocken wir das Wohnmobil verbindlich fuer dich". Jede Mail bekommt eine Ausstie
 entschieden hast, kurze Antwort genuegt") und den Satz, dass sich die Mail mit einer schon getaetigten Zahlung
 ueberschnitten haben kann. Betreffzeilen mit echten Umlauten, im HTML-Body Entities.
 
-## Opt-out der Vermieter (seit 01.08.2026)
+## Schalter der Vermieter: Einstellungen -> Benachrichtigungen (seit 01.08.2026)
 
-Standard ist AN, weil es um die Anzahlung auf unser Konto geht. Wer lieber selbst nachfasst, schaltet
-es je Standort ab: Backend-Kalender, Karte "Zahlungserinnerungen" unten rechts, Abschnitt "Erinnerung
-bei ausstehender Anzahlung".
+Beide Erinnerungen werden an EINER Stelle geschaltet: Backend, Menue Einstellungen, Eintrag
+"Benachrichtigungen". Das Modal zeigt je Standort eine Zeile mit zwei Haken:
 
-- `cf-zusageopt.php` (Backend-Webroot) + `cf-zusageopt.js`, Tabelle `cf_zusage_opt` (station_id, disabled).
-  Der Job ueberspringt Standorte mit `disabled=1` und schreibt das in die uebersprungen-Liste.
-- **Eigene Dateien statt Eingriff in cf-payreminder.js** (andere Session). Die Karte wird per
-  `appendChild` an `#cf-pr-panel` gehaengt; fehlt sie, rendert das Script eine eigene Karte unten rechts.
-- **Besitzpruefung:** X-Token gegen `/api/login`, setzen nur fuer eigene Standorte (403 sonst).
+| Spalte | Bedeutung | Semantik | Tabelle | Endpoint |
+|---|---|---|---|---|
+| Anzahlung | 3/7 Tage nach Zusage | **Opt-OUT**, Default AN | `cf_zusage_opt.disabled` | `cf-zusageopt.php` |
+| Restbetrag | 40/30 Tage vor Reise | Opt-IN, Default AUS | `cf_payreminder_opt.enabled` | `cf-payreminder-opt.php` (fremd) |
+
+- UI: `cf-benachrichtigungen.js` haengt einen `a.item` in `management-menu .ui.dropdown.item > .menu`
+  (gleiche Technik wie der Menuepunkt "€ Abrechnung"). Kein Bundle-Rebuild noetig, und genau deshalb
+  auch **nicht** ins Angular-Bundle einbauen: der Azure-master hat gegenueber srv2 ~4 Jahre Drift.
+- Die alte Kalender-Karte (`cf-zusageopt.js`, `#cf-pr-panel` der Nachbar-Session) wird nur ausgeblendet,
+  fremde Dateien bleiben unangetastet. Rollback = Script-Tag zurueckstellen.
+- Besitzpruefung im Endpoint: X-Token gegen `/api/login`, setzen nur fuer eigene Standorte (sonst 403).
   Der Login-Aufruf laeuft per `CURLOPT_RESOLVE` auf 127.0.0.1, weil srv2 ein CA-Bundle von 2019 hat.
-- **Admins sehen alle Standorte** (bei Bjoern 338), deshalb hat die Liste ab 12 Eintraegen ein Suchfeld
-  und `max-height:220px`.
-- **index.html-Falle:** die Script-Tags stehen dort als
-  `<script type="text/javascript" src="...">`. Ein Anker ohne `type` findet nichts, der Patch bricht dann
-  mit "Anker 0x" ab. Immer erst die exakte Schreibweise per grep holen, Backup anlegen, Treffer zaehlen.
+- Admins sehen alle Standorte (bei Bjoern 340), deshalb Suchfeld ab 10 Eintraegen.
 
 ## Bekannte Fallen
+
+- **Sticky-Kalenderkopf zeichnet sich durch Overlays.** Ein Modal mit `z-index:10000` wurde vom
+  Belegungskalender durchbrochen, obwohl `elementFromPoint` das Modal meldete. Erst
+  `z-index:2147483000` + `isolation:isolate` half. Overlays im Backend immer gegen einen Screenshot
+  pruefen, nicht nur per DOM-Abfrage.
 
 - **Parallel-Sessions**: `cf-payreminder.php` und `cf-zusage-reminder.php` wurden am selben Abend von zwei
   Accounts gebaut. Fremde Datei nie nebenbei mitaendern, lieber eine eigene Datei plus eigene Tabelle plus
