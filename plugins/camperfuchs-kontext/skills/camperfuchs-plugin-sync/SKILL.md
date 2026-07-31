@@ -156,6 +156,21 @@ git add ... && git commit -m "vX.Y.Z: ..." && git push origin main
 Der Lock ist eine Höflichkeitsbremse gegen die eigenen Parallel-Sessions, kein Sicherheitsmechanismus.
 Er kostet 20 Sekunden und hat am 15.07.2026 gefehlt, als eine Skill still aus dem Paket fiel.
 
+## Das Paket baut jetzt die Pipeline (seit 01.08.2026)
+
+`marketplace-plugin-build` (Definition 29, YAML `ci/plugin-build.yml`, Pool `macos`) laeuft bei jedem
+Push auf `main`, der `plugins/*`, `CHANGELOG.md` oder das Script anfasst. Sie prueft ALLE Skills
+(Frontmatter, name, description <= 1024, kein BOM), scannt auf Secrets, vergleicht Skill-Zahl
+Quellbaum gegen Paket, baut `camperfuchs-kontext.plugin` **deterministisch** (feste Zeitstempel, damit
+gleicher Inhalt gleiche Bytes ergibt) und committet es zurueck, falls es abweicht. Der eigene Commit
+traegt `[skip ci]`.
+
+Damit kann Schritt 7/8 aus Workflow B nicht mehr vergessen werden: eine gepushte Skill landet
+automatisch im ausgelieferten Paket. Von Hand bleibt genau das, was Urteil braucht: Inhalt,
+Versionsnummer, Changelog-Eintrag und Bjoerns Installations-Klick.
+
+Lokal dasselbe pruefen: `python3 ci/plugin_pack.py --check` (Exit 1 bei Abweichung) bzw. `--write`.
+
 ## Fallen
 
 - **`while read` + letzte Zeile ohne Zeilenumbruch** → Datei fehlt im Baum → Skill verschwindet
