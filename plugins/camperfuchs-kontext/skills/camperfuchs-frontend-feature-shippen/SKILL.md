@@ -78,6 +78,43 @@ DC start_process  git push -u origin fix/<kurz>
 Push läuft über den SSH-Key (ssh.dev.azure.com), unabhängig vom PAT. Die
 „post-quantum"-Warnung ist harmlos (mit findstr rausfiltern).
 
+## Schritt 2b — Encoding-Guard (Pflicht, kostet 10 Sekunden)
+
+Vor JEDEM Push, der eine Datei mit deutschen Texten anfasst (.tsx/.ts/.json/.md), pruefen, ob
+Umlaute, `€`, Gedankenstriche oder Emoji doppelt kodiert wurden. Der Build meckert NICHT — es
+sind syntaktisch gueltige Strings, sie gehen bis prod durch.
+
+```bash
+grep -c -P 'Ã|â‚¬|â€|ðŸ|Â·' <datei>        # 0 erwartet, alles andere = STOPP
+```
+
+Am ausgelieferten Bundle gegenpruefen (nach dem Deploy):
+
+```bash
+grep -o -a -h -P '\\x(c2|c3|e2|f0)\\x[0-9a-f]{2}' chunks/*.js   # 0 Treffer erwartet
+```
+Merke: Umlaute stehen im Bundle korrekt als `\xe4` — `\xc3\xa4`, `\xe2\x82\xac`,
+`\xf0\x9f\x8f\xb7` sind Mojibake.
+
+**Ursache Nr. 1: Windows-PowerShell.** `Invoke-RestMethod` auf `…/items?…&$format=text`
+dekodiert Antworten ohne `charset`-Header als ISO-8859-1. Wer so eine Datei holt, aendert und
+zurueckschreibt, kodiert die GANZE Datei doppelt — auch die Stellen, die er gar nicht angefasst
+hat. Genau so ging am 01.08.2026 PR 1645 (Bild-Karussell) live und die Suchseite zeigte
+stundenlang `ab 169 â‚¬ / Nacht`, kaputte Karussell-Pfeile und `NÃ¤chte`.
+
+→ **Read-Modify-Write von Repo-Dateien NUR aus der Sandbox** (`curl` + Python, explizit UTF-8).
+PowerShell darf Status abfragen, PRs anlegen, approven — aber nie Dateiinhalte transportieren.
+
+⚠️ **Nicht blind reparieren.** Ein paar Stellen dokumentieren Mojibake ABSICHTLICH (z.B. `camperfuchs-legacy-backend` zeigt, wie das Backend falsche Zeichen rendert). Vor dem Ersetzen den Treffer im Kontext ansehen. Und: die Fehl-Dekodierung ist mal ISO-8859-1, mal cp1252 — bei cp1252 landen die Bytes 0x80-0x9F auf Zeichen wie „€“ oder „—“, ein reiner latin-1-Rundlauf lässt die dann stehen.
+
+**Reparatur, wenn es doch passiert ist:**
+
+```python
+fixed = kaputt.encode('latin-1').decode('utf-8')   # laeuft es durch, war es genau diese Doppelkodierung
+```
+Dann als normalen Fix-PR main → staging → prod durchziehen (Diff enthaelt NUR die Zeichen,
+keine Logik). Beispiel: PR 1654/1655/1656 am 01.08.2026.
+
 ## Schritt 3 — PR → main (NUR Browser; PAT ist abgelaufen)
 ⚠️ **PAT ist abgelaufen (Stand 14.06.2026).** `curl -u ":$PAT" …/_apis/…` liefert
 `{"code":"rest_not_logged_in"}` (HTTP-Body 401). Also KEIN REST-Ship-Loop mehr —
