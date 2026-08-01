@@ -9,6 +9,15 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.38.0 (2026-08-01)
+- **Neu: Skill `camperfuchs-kontaktfreigabe`** - die komplette Kette, wann der Vermieter die
+  Kontaktdaten des Mietinteressenten bekommt und wann das Backend den Vorgang demaskiert:
+  Maskierungsregel im AccessHelper (inkl. der neuen Ausnahme `meta.cfContactReleased`), die vier
+  Bausteine (Make 5482694 Datastore-Felder `vorgang`/`link`, 6030776 Freigabe-Button,
+  6752917 Router mit Vermieter-Mail bzw. Warnmail, srv2-Endpoint `cf-contact-release.php`),
+  das Verifikations-Rezept mit selbst signiertem JWT und die Cloudflare-Cache-Falle bei eigenen
+  GET-Endpoints. Keine Schluessel im Text, nur Pfade.
+
 ## v0.37.0 (2026-08-01)
 
 **Mail-Schalter liegen jetzt unter Einstellungen -> Benachrichtigungen (`camperfuchs-zahlungserinnerungen`)**
