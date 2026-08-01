@@ -9,6 +9,16 @@ Check â€žbin ich aktuell?": installierte Plugin-Version mit dem obersten Ein
 
 ---
 
+## v0.39.0 (2026-08-01)
+- **camperfuchs-kontaktfreigabe** aktualisiert: die Kontaktdaten-Mail an den Vermieter verschickt
+  seit heute der srv2-Endpoint `cf-contact-release.php` selbst ueber **Mailgun** (From noreply@,
+  Reply-To office@), nicht mehr das Gmail-Modul in Make 6752917. Neuer Fallback `mieter=` +
+  `vermieter=`: ohne Datastore-Datensatz sucht der Endpoint den Vorgang in der DB (Vorrang hat
+  der mit `meta.vermieterDecision = "ja"`). Beide Router-Routen in 6752917 rufen jetzt nur noch
+  den Endpoint, die Warnmail an b.dunker gibt es nur noch im Fehlerfall. Dazu neu in der Skill:
+  Endpoint-Parameter (`nomail`, `to`, `undo`, `by`), Log-Felder (`via`, `cand`, `mail`, `to`),
+  Test-Rezepte fuer beide Routen und die Falle, dass die alte Version 400/404 gar nicht loggte.
+
 ## v0.38.0 (2026-08-01)
 - **Neu: Skill `camperfuchs-kontaktfreigabe`** - die komplette Kette, wann der Vermieter die
   Kontaktdaten des Mietinteressenten bekommt und wann das Backend den Vorgang demaskiert:
