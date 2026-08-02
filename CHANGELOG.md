@@ -9,6 +9,16 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.41.0 (2026-08-01)
+- `camperfuchs-kontaktfreigabe`: neuer Abschnitt zum **Waechter `cf-freigabe-watch.php`** (Cron 9:45,
+  DRY-RUN als Standard). Block A meldet Vorgaenge mit Vermieter-Zusage UND Zahlungseingang, bei denen
+  die Kontaktdaten nicht freigegeben sind, mit Freigabe-Button auf den Make-Hook (kein Schluessel in
+  der Mail). Block B meldet Freigaben, deren Kontaktdaten-Mail laut Worker `cf-mailstatus` nicht
+  zugestellt wurde. Dazu die Falle, die im ersten Anlauf zuschlug: Block B muss gegen den neuen
+  meta-Vermerk `cfContactMailTo` pruefen, nicht gegen `stations.email` - sonst meldet er Testversande
+  und `nomail=1`-Freigaben als Zustellfehler. Und die Notiz, warum das Zustell-Badge aus der
+  Dokumentenliste hier nicht greift (die Kontaktdaten-Mail ist kein Dokument).
+
 ## v0.40.0 (2026-08-01)
 - `camperfuchs-frontend-feature-shippen`: neuer **Schritt 2b — Encoding-Guard**. Vor jedem Push
   auf UTF-8-Doppelkodierung prüfen (`grep -c -P 'Ã|…'`), am Bundle gegenprüfen

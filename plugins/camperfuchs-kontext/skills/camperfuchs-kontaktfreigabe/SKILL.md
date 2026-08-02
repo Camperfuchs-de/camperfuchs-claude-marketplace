@@ -63,6 +63,31 @@ tragen `via=` (`id` | `nr` | `mieter+zusage` | `mieter+neuester`), `cand=`, `mai
 aus `articles.short_name`, sonst der SEO-Titel hinter dem ersten `": "`, plus Kennzeichen.
 Backup der Vorversion: `cf-contact-release.php.bak-mailgun-20260801`.
 
+## Waechter cf-freigabe-watch.php (seit 01.08.2026)
+
+`/usr/local/cf/cf-freigabe-watch.php`, Cron taeglich 9:45 (`/etc/cron.d/cf-freigabe-watch`),
+Tabelle `cf_freigabe_watch` (PK `booking_id`+`kind`, Wiedervorlage 7 Tage). **Standard ist DRY-RUN**,
+Versand nur mit `--live`, `--all` hebt die Wiedervorlage auf. Zwei Bloecke in einer Sammelmail an
+b.dunker:
+
+- **Block A "Freigabe fehlt":** `meta.vermieterDecision = "ja"`, **Zahlungseingang > 1 EUR** (am
+  Vorgang oder an einer ueberlappenden Buchung desselben Mieters), aber kein `cfContactReleased`.
+  Ohne Geld wird bewusst NICHT gemeldet - dann ist das Warten richtig. Je Treffer ein Button auf den
+  **Make-Hook** (Zwei-Stufen-Bestaetigung), damit **kein Schluessel in der Mail steht**.
+- **Block B "Mail nicht zugestellt":** Freigaben der letzten 14 Tage gegen den Worker
+  `cf-mailstatus` (`/status?recipient=`, Auth = selbst signiertes JWT fuer uid 1006). Kein
+  `delivered` seit der Freigabe oder ein `permanent_fail` -> Meldung. Antwortet der Worker nicht,
+  wird NICHTS gemeldet (eine Stoerung darf keinen Fehlalarm ausloesen).
+
+⚠️ **Block B prueft `meta.cfContactMailTo`, NICHT `stations.email`.** Im ersten Anlauf nahm er die
+Stationsadresse an und meldete sofort zwei Vorgaenge als "nicht zugestellt", bei denen die Mail nie
+dorthin ging (Testversand mit `to=`, bzw. `nomail=1`). Deshalb schreibt der Endpoint nach
+erfolgreichem Versand `cfContactMailTo` + `cfContactMailAt` in die meta. Freigaben von vor dem
+01.08.2026 haben den Vermerk nicht und werden uebersprungen.
+
+Das Zustell-Badge aus der Dokumentenliste (Skill `camperfuchs-mailstatus`) geht hier NICHT: es haengt
+an `bookings/{id}/documents`, und die Kontaktdaten-Mail ist kein Dokument. Der Waechter ist der Ersatz.
+
 ## Haeufige Faelle
 
 - **"Vermieter sieht/bekommt die Daten nicht"** → `tail /var/log/cf-contact-release.log`. Dort steht
