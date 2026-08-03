@@ -9,6 +9,23 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.42.0 (2026-08-03)
+- **Neu im Plugin: `camperfuchs-wp-droplet-ops`** — bisher nur Account-Skill (und dort read-only),
+  jetzt hier gepflegt. Deckt die WP-Droplet 167.172.160.66 mit new.camperfuchs.de und
+  edition.camperfuchs.de ab: SSH-Zugang, Klon-Runbook für neue Subdomains, Memory-Balance.
+- **Neues Performance-Kapitel** aus dem Fall vom 03.08.2026 („edition extrem langsam", TTFB 9–11 s →
+  0,44–0,55 s). Die Ursache war der **zu 100 % volle PHP-OPcache**: zwei komplette WooCommerce-Installs
+  mit zusammen ~59.000 PHP-Dateien teilen sich einen 128M-Cache, hit_rate 20 %, dadurch ~2 s
+  PHP-Bootstrap pro Seitenaufruf auf 2 Kernen. Fix: `99-cf-opcache.ini` mit 512M/64M/65407.
+  Dazu die drei Folgeschritte — WP Super Cache im PHP-Modus auf beiden Sites (warmer Treffer 7–11 ms,
+  Checkout/Warenkorb/wp-json ausgenommen, kein Cache für Eingeloggte), `DISABLE_WP_CRON` plus
+  `/etc/cron.d/cf-wp-cron` (`HOME=/tmp` ist Pflicht), und ein Memory-Limit von 512M **nur** für
+  `/wp-admin/`, `/wp-json/` und `admin-ajax.php` statt global — sonst kehrt die alte MySQL-OOM-Historie
+  zurück.
+- Aufgenommen: **wie man auf dieser Droplet überhaupt richtig misst** (`curl --resolve` statt
+  Host-Header, warm/kalt trennen, parallele Requests), das OPcache-Status-Snippet, und die Falle, die
+  in derselben Session zuschlug: **PowerShell expandiert `$Variablen` in SSH-Einzeilern** und hat damit
+  die `wp-cache-config.php` auf beiden Sites zerschossen — immer der base64-Weg, immer vorher `cp -a`.
 ## v0.41.0 (2026-08-01)
 - `camperfuchs-kontaktfreigabe`: neuer Abschnitt zum **Waechter `cf-freigabe-watch.php`** (Cron 9:45,
   DRY-RUN als Standard). Block A meldet Vorgaenge mit Vermieter-Zusage UND Zahlungseingang, bei denen
