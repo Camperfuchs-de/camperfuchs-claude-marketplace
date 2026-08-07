@@ -9,6 +9,20 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.43.0 (2026-08-07)
+- **`camperfuchs-frontend-feature-shippen` erweitert: Stale-Branch-Falle bei alten PRs.**
+  `mergeStatus: succeeded` heisst nur „textuell mergebar", nicht „semantisch richtig".
+  Ein PR von altem main kann beim Merge neuere main-Aenderungen stillschweigend
+  zurueckdrehen — genau daran starb PR 1732 zweimal im pr-build (`CustomerBookingControllerSpec`,
+  `TooManyInvocationsError` auf `checkBookingPlausibility`, weil der Branch die 5-arg-Fassung
+  ohne `preDayPickup` mitbrachte und `normalizeLegacyStationId()` mitgerissen haette).
+  Neu im Skill: der Pflicht-Check (Branch-Tip gegen AKTUELLES main diffen, nicht gegen die
+  Merge-Basis), die Regel „nicht rebasen, sondern auf aktuellem main neu aufsetzen"
+  inkl. Schritt-fuer-Schritt-Rezept, die 40-Zeichen-Objekt-ID-Falle der Items-API, und
+  wann ein Policy-Requeue ueberhaupt hilft (nur bei Flake/veraltetem Target) plus wo der
+  brauchbare Build-Log haengt (am `Task`-Record, nicht am `Stage`-Record).
+  Praxis: 1732 -> 1774 und 1537 -> 1776 nach diesem Muster ersetzt.
+
 ## v0.42.0 (2026-08-03)
 - **Neu im Plugin: `camperfuchs-wp-droplet-ops`** — bisher nur Account-Skill (und dort read-only),
   jetzt hier gepflegt. Deckt die WP-Droplet 167.172.160.66 mit new.camperfuchs.de und

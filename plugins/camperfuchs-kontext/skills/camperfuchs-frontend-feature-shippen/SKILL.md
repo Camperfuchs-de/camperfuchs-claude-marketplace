@@ -306,6 +306,69 @@ Der neue Lauf baut nochmal und laeuft wieder ins Environment-Approval-Gate → d
   waehrend der Build-Stage noch nichts. Erst wenn die Deploy-Stage wartet, gibt es eine
   Approval-ID — weiter pollen statt anzunehmen, es gebe kein Gate.
 
+## Alte PRs: Stale-Branch-Falle (teuer gelernt 07.08.2026)
+
+**`mergeStatus: succeeded` heisst nur „textuell mergebar", NICHT „semantisch richtig".**
+Bei jedem PR, der aelter als ein paar Tage ist, VOR dem Scharfstellen von Auto-Complete
+pruefen, ob der Branch neuere main-Aenderungen zurueckdrehen wuerde.
+
+Der Fall: PR 1732 („Auth-Gate vor DB-Zugriff") war zweimal rot (pr-build 4503 und der
+Requeue 4609), beide Male `CustomerBookingControllerSpec` mit
+`TooManyInvocationsError` / `TooFewInvocationsError` auf `checkBookingPlausibility`.
+Kein Flake: Der Branch stammte von altem main und trug eine ALTE Fassung von
+`CustomerBookingController.java`. Der Merge haette zwei neuere main-Aenderungen
+stillschweigend rueckgaengig gemacht — `normalizeLegacyStationId()` (Legacy-Stations-IDs
+aus alten Angebots-PDFs) und den `preDayPickup`-Parameter (5-arg statt 6-arg → genau
+daran starben die Specs).
+
+**Pflicht-Check vor Auto-Complete bei alten PRs:**
+```bash
+# 1) Welche Dateien fasst der PR an?
+LAST=$(curl -s -H "Authorization: Basic $AUTH" \
+  "$B/pullrequests/$PR/iterations?api-version=7.0" \
+  | python3 -c "import sys,json;print(json.load(sys.stdin)['value'][-1]['id'])")
+curl -s -H "Authorization: Basic $AUTH" \
+  "$B/pullrequests/$PR/iterations/$LAST/changes?api-version=7.0"
+
+# 2) Branch-Tip gegen AKTUELLES main diffen (nicht gegen die Merge-Basis!).
+#    Zeigt der Diff Zeilen, die in main NEUER sind und im Branch FEHLEN → Stale-Branch.
+curl -s -H "Authorization: Basic $AUTH" -H "Accept: text/plain" \
+  "$B/items?path=$FILE&versionDescriptor.version=main&versionDescriptor.versionType=branch&includeContent=true&api-version=7.0" > /tmp/main.txt
+curl -s -H "Authorization: Basic $AUTH" -H "Accept: text/plain" \
+  "$B/items?path=$FILE&versionDescriptor.version=$BRANCH&versionDescriptor.versionType=branch&includeContent=true&api-version=7.0" > /tmp/branch.txt
+diff -u /tmp/main.txt /tmp/branch.txt
+```
+
+**Konsequenz: NICHT rebasen, sondern neu aufsetzen.** Billiger und sicherer, als
+Konflikte in einer Datei aufzuloesen, die sich wochenlang weiterentwickelt hat:
+
+1. Die *Absicht* des alten PR aus seinem Commit-Diff gegen die eigene Basis herausziehen
+   (`commits?searchCriteria.itemVersion.version=main&searchCriteria.compareVersion.version=<branch>`,
+   dann Datei-Inhalte auf Basis-Commit vs. Branch-Tip diffen). Objekt-IDs muessen **40 Zeichen**
+   lang sein, sonst antwortet die API mit `ArgumentException`.
+2. Aktuelle main-Fassung der betroffenen Dateien ziehen, die Aenderung frisch anwenden,
+   Anker vorher per `grep -c` verifizieren (existiert der Ankertext noch? ist die Aenderung
+   evtl. schon drin?).
+3. Neuen Branch `<alt>-v2` per Push-API anlegen, neuen PR, Self-Approve + Auto-Complete.
+4. Alten PR mit Begruendungs-Kommentar `abandoned` — nur bei EIGENEN PRs (b.dunker),
+   nie bei fremden.
+
+So gemacht bei 1732 → **1774** (gruen, gemergt) und 1537 → **1776**.
+
+**Nebenbefund:** Ein Requeue der Build-Policy (`PATCH policy/evaluations/{id}`) hilft nur
+bei echten Flakes und bei Builds gegen ein veraltetes Target. Bleibt der Build nach dem
+Requeue rot, ist es ein echter Fehler — dann Log ziehen und die Ursache lesen, nicht
+nochmal requeuen:
+```bash
+# failed record + Log-ID holen, dann gezielt den Task-Log grepppen
+curl -s -H "Authorization: Basic $AUTH" \
+  "https://dev.azure.com/camperfuchs/camperfuchs/_apis/build/builds/$ID/timeline?api-version=7.0"
+curl -s -H "Authorization: Basic $AUTH" \
+  "https://dev.azure.com/camperfuchs/camperfuchs/_apis/build/builds/$ID/logs/$LOGID?api-version=7.0" \
+  | grep -nE "Tests run:.*Failures: [1-9]|TooManyInvocations|TooFewInvocations|Failed tests"
+```
+Der Log am `Stage`-Record ist meist leer — der brauchbare haengt am **`Task`**-Record.
+
 ## PR-Build-Pipeline reparieren (wenn `pr-build-pipeline` dauerhaft rot bleibt)
 
 Die CI-Prüfung auf PRs läuft aus Branch `azure-pipelines`, Datei
