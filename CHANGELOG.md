@@ -9,6 +9,15 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.44.0 (2026-08-10)
+
+- camperfuchs-kalender-sperre: Titel-Match läuft jetzt SERVERSEITIG fuzzy — neuer key-gated
+  Endpoint srv2 `GET /api/automation/articles-by-landlord?email=&title=` (normalisiert,
+  Tiers exact/contains/Orts-Suffix-Cut, gegen short_name UND articles.title). Make 6578305
+  prüft nur noch `4.data.match.count` und sperrt mit `match.id`. Auslöser: "First Line" vs
+  "FirstLine" (womo-winkler) lief in den Fallback. Repo Old Camperfuchs PR #1801.
+  Außerdem: Hook per curl aus der Sandbox aufrufbar (alte Chrome-Pflicht-Note überholt).
+
 ## v0.43.0 (2026-08-07)
 - **`camperfuchs-frontend-feature-shippen` erweitert: Stale-Branch-Falle bei alten PRs.**
   `mergeStatus: succeeded` heisst nur „textuell mergebar", nicht „semantisch richtig".

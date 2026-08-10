@@ -37,14 +37,21 @@ jedem NEIN würde buchbare Zeiträume dichtmachen = direkter Umsatzverlust. Desh
 2. **Make 6578305** „Kalender-Sperre bei NEIN", Hook `kdoadlc3iv8sweiggr30cfq7das9gqkk`,
    Parameter `?vermieter=…&betreff=…`:
    - M2 `datastore:GetRecord` DS **131528**, key `{{1.vermieter}}|{{1.betreff}}`
-   - M4 `http` GET `api/V1/articles/by-landlord?email={vermieter}` (parseResponse)
-   - Router: Route 1 Filter „Fahrzeug eindeutig" (genau 1 Titel-Treffer) → M6 POST block →
-     M9 Respond Erfolgsseite → M7 Marker in DS 137664.
-     Route 2 Filter „NICHT eindeutig" → M10 Diagnose-Mail an Björn → M11 Respond
-     „Wir kümmern uns".
+   - M4 `http` GET srv2 `/api/automation/articles-by-landlord?email={vermieter}&title={titel}`
+     (key-gated per X-Automation-Key wie /block; parseResponse) — matcht den Titel seit
+     10.08.2026 SERVERSEITIG fuzzy und liefert `match{count,id,title,tier}` + `content[]`.
+     Vorher: Spring by-landlord + exakter Make-`map()`-Match, scheiterte an Schreibvarianten.
+   - Router: Route 1 Filter „Fahrzeug eindeutig" (`4.data.match.count = 1`) → M6 POST block
+     mit `4.data.match.id` → M9 Respond Erfolgsseite (zeigt `match.title`) → M7 Marker in
+     DS 137664. Route 2 Filter „NICHT eindeutig" (`count ≠ 1`) → M10 Diagnose-Mail an Björn
+     (inkl. count/tier) → M11 Respond „Wir kümmern uns".
 3. **Endpoint** `src/ApiBundle/Controller/AutomationController.php` auf srv2
-   (`/home/gaz/rent`), Routen `/api/automation/block` und `/api/automation/unblock`.
-   Repo: Azure-Projekt „Old Camperfuchs", PR #1387.
+   (`/home/gaz/rent`), Routen `/api/automation/block`, `/api/automation/unblock` und
+   `/api/automation/articles-by-landlord` (GET email+title, Fuzzy-Match: normalisiert auf
+   lowercase/nur Buchstaben+Ziffern, Tiers exact → contains beidseitig (min. 6 Zeichen) →
+   Ziel am letzten " in " gekappt (Orts-Suffix); matcht gegen short_name UND articles.title).
+   Repo: Azure-Projekt „Old Camperfuchs", PR #1387 + #1801 (kompletter srv2-Live-Stand
+   nachgezogen 10.08.2026 — Achtung, master hatte ~4 Jahre Drift).
 
 ## Wochentags-Ausschluss (rdo, seit 27.07.2026)
 
@@ -52,7 +59,7 @@ Die NEIN-Danke-Seite (6030776 M2) traegt seit 27.07. ZWEI Buttons (der Kalender-
 war beim Phase-4/M20-Umbau verschwunden und wurde restauriert): (1) "Zeitraum im Kalender
 sperren" (wie gehabt) und (2) "Keine Anfragen mehr an diesem Wochentag" → gleicher Hook mit
 `&rdo=1`. In 6578305 haengen dafuer 2 zusaetzliche Router-Routen (M20/21 Erfolg, M30/31
-Fallback-Mail an Bjoern); die beiden Alt-Routen haben einen `1.rdo notexist`-Guard. Der Tag ist
+Fallback-Mail an Bjoern); die beiden Alt-Routen haben einen `1.rdo notexist`-Guard; auch M20/M30 prüfen seit 10.08. `4.data.match.count`. Der Tag ist
 der ABHOL-Wochentag der Anfrage (`upper(formatDate(parseDate(...); "dddd"))`), gesetzt wird er
 per POST `/api/automation/request-days-off` (AutomationController, key-gated wie /block, Station
 via Article, idempotent add/remove) in `stations.request_days_off` (CSV aus DayOfWeek-Namen;
@@ -87,17 +94,21 @@ den Parameter als Platzhalter `~`.
 
 ## Fallen (teuer gelernt)
 
-- **by-landlord IMMER mit `&size=500` aufrufen** (seit 27.07. in M4 drin): Default ist
-  Page-Groesse 50 — Vermieter mit mehr Fahrzeugen (Elba: 57) finden ihr Fahrzeug sonst nicht
-  auf Seite 1 → Fallback statt Sperre. Betraf den Block-Flow seit Anbeginn.
-- **DS-Feld `fahrzeug` traegt den SHORTNAME** (= VM-`title` von by-landlord), NICHT
-  `articles.title` (langer SEO-Titel). Testrecords mit dem Kurznamen bauen, sonst 0 Treffer.
+- **Titel-Match läuft SERVERSEITIG** (seit 10.08.2026): Matching-Probleme am srv2-Endpoint
+  `/articles-by-landlord` fixen, NICHT in Make-Formeln — `map()` matcht nur exakt,
+  Normalisierung ist in Make-Formeln nicht machbar. Der Endpoint liefert immer ALLE
+  Fahrzeuge des Vermieters (die alte `&size=500`-Falle des Spring-by-landlord entfällt).
+- **DS-Feld `fahrzeug` trägt mal den SHORTNAME, mal den langen `articles.title`**
+  (Fall womo-winkler 10.08.: "Chausson 648 First Line in Großenseebach" = SEO-Titel, der
+  VM-Titel war "Chausson 648 FirstLine mit Queensbett" → 0 Treffer beim Exakt-Match).
+  Der Server-Match deckt beide Formen, weil er gegen short_name UND title prüft.
 - **Fahrzeug-Titel sauber schneiden:** DS-Feld `fahrzeug` ist roh, also
   `WEINSBERG CaraCore 650 MF [https://email.mg…]`. Nutze
   `trim(first(split(2.fahrzeug; " [https")))` — **KEIN Regex** mit `[^\]]`, das bricht in
   Make-Formeln und zerlegt außerdem Namen wie `… [PEPPER]`.
-- **Nur bei genau 1 Treffer sperren.** `length(map(4.data.content; "id"; "title"; <titel>))`
-  muss `= 1` sein. Sonst Fallback-Mail. Verhindert, dass das falsche Fahrzeug dichtgemacht wird.
+- **Nur bei genau 1 Treffer sperren.** `4.data.match.count` muss `= 1` sein, sonst
+  Fallback-Mail (mit count/tier als Diagnose). Verhindert, dass das falsche Fahrzeug
+  dichtgemacht wird — der Fuzzy-Match weicht die Sicherung bewusst NICHT auf.
 - **Fallback-Routen brauchen einen eigenen Filter.** Eine Route ohne Filter läuft IMMER mit;
   ihre Antwortseite überholt dann die Erfolgsseite.
 - **`builtin:Ignore` als onerror beendet die Route.** Ein `AddRecord` mit `overwrite:false`
@@ -116,7 +127,7 @@ den Parameter als Platzhalter `~`.
 2. Für den Block-Webhook: `vermieter` = echte Vermieter-Adresse (sonst liefert `by-landlord`
    nichts). Für die 6030776-Kette: `vermieter=b.dunker@camperfuchs.de`, dann landen alle
    Mails bei Björn; `mieter` leer lassen, dann entsteht kein Kunden-Entwurf.
-3. **Sandbox erreicht hook.eu1.make.com NICHT** → Klick über Claude in Chrome (`navigate`).
+3. Der Hook ist per curl DIREKT aus der Sandbox aufrufbar (10.08.2026 verifiziert — die alte "nur über Chrome"-Note ist überholt).
 4. Danach aufräumen: DS-Records löschen (131528, 131793, 137664) und die Testsperre per
    `/api/automation/unblock` entfernen. Gegenprüfen, dass 0 Zeilen übrig sind.
 
