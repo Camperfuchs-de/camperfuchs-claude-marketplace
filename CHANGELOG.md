@@ -9,7 +9,7 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
-## 0.46.0 — 11.08.2026
+## v0.46.0 (2026-08-11)
 
 **Neu: Skill `camperfuchs-relay-chat`** — Landkarte des maskierten Chats zwischen Vermieter und
 Mietinteressent (Worker cf-mailstatus, Aliasse chat+/partner+/antwort+, D1 chat_map/chat_partner,
