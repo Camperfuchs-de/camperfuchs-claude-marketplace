@@ -9,6 +9,16 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.45.0 (2026-08-11)
+
+- camperfuchs-projekt (Make.com-Abschnitt): zweiter Fall der Meldung `Validation failed for
+  1 parameter(s)` ergänzt — `Missing value of required parameter 'followAllRedirects'` kommt
+  von einem per API/Blueprint gebauten HTTP-Modul, nicht von einem Gift-Bundle. Make setzt die
+  Defaults nur in der UI, über die API müssen alle Mapper-Booleans explizit gesetzt sein; das
+  Szenario stoppt dabei nicht, sondern schickt nur Alert-Mails. Dazu die Konvention für
+  Wegwerf-Testszenarien (`ZZ <Zweck>-Test`, nach dem Test löschen) und der Hinweis, dass
+  Alert-Mails dem Löschen nachlaufen → bei Fehlermail zuerst `scenarios_list` prüfen.
+
 ## v0.44.0 (2026-08-10)
 
 - camperfuchs-kalender-sperre: Titel-Match läuft jetzt SERVERSEITIG fuzzy — neuer key-gated
