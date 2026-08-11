@@ -9,6 +9,22 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## 0.46.0 — 11.08.2026
+
+**Neu: Skill `camperfuchs-relay-chat`** — Landkarte des maskierten Chats zwischen Vermieter und
+Mietinteressent (Worker cf-mailstatus, Aliasse chat+/partner+/antwort+, D1 chat_map/chat_partner,
+Seite /backend/nachrichten) plus die Fehlersuch-Reihenfolge.
+
+Kern der Aufnahme ist eine teuer bezahlte Lehre vom 11.08.2026: Die Mailgun-Routen matchten nur
+numerische Vorgangsschlüssel, der Reply-To trug aber die Buchungsnummer. Damit griff keine Route,
+der catch_all schluckte die Mail still, und **jede** Kundenantwort ging verloren — ohne eine
+einzige Fehlermeldung. Daraus die verallgemeinerte Regel: ein stiller Fallback ist gefährlicher
+als ein lauter Fehler; wo weitergereicht wird, muss „passt zu nichts" eine Meldung erzeugen.
+
+Ebenfalls dokumentiert: Anhänge laufen jetzt in beide Richtungen durch (Mail wie Web-Chat),
+die numerische Buchungs-ID ist der einzig gültige Vorgangsschlüssel, und ein abweichender Preis
+im Chat ist meist ein ungepflegter Saison-Zeitraum, kein Betrug.
+
 ## v0.45.0 (2026-08-11)
 
 - camperfuchs-projekt (Make.com-Abschnitt): zweiter Fall der Meldung `Validation failed for
