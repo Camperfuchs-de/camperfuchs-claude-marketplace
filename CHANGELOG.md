@@ -9,6 +9,15 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.48.0 (2026-08-20)
+
+- `camperfuchs-projekt`: neues Kapitel **Windows/PowerShell — JSON- und Config-Dateien schreiben
+  (BOM-Falle)**. `Set-Content`/`Out-File`/`>` schreiben UTF-8 mit BOM und machen JSON damit
+  unparsbar; Programme schreiben ihre Config danach oft mit Defaults neu, wodurch Einstellungen
+  lautlos verschwinden. Richtiger Weg (`WriteAllText` + `UTF8Encoding($false)`), Backup- und
+  Verifikations-Pflicht sowie der Hinweis, laufende Programme vorher zu beenden. Enthaelt ausserdem
+  die `$`-Stripping-Falle bei durchgereichten PowerShell-Einzeilern (`.ps1` statt Einzeiler).
+
 ## v0.47.0 (2026-08-20)
 
 - `camperfuchs-zahlungserinnerungen`: Wer welchen Erinnerungs-Schalter sehen darf. Die Anzahlung

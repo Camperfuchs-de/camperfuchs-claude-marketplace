@@ -207,6 +207,28 @@ Ein instant-Webhook-Szenario, das mit einem Modul-Fehler stoppt (z. B. `BundleVa
 
 **Zweiter, anders gelagerter Fall derselben Meldung:** `Validation failed for 1 parameter(s). Missing value of required parameter 'followAllRedirects'` (bzw. `followRedirect`, `parseResponse`) kommt NICHT von einem Gift-Bundle, sondern von einem HTTP-Modul (`http:ActionSendData`), das per Make-API/Blueprint angelegt oder geklont wurde. Ueber die Make-UI setzt Make die Defaults dieser Booleans automatisch, ueber die API NICHT — sie muessen alle explizit im `mapper` stehen (`serializeUrl`, `method`, `headers`, `qs`, `bodyType`, `parseResponse`, `authUser`, `authPass`, `timeout`, `shareCookies`, `ca`, `rejectUnauthorized`, `followRedirect`, `followAllRedirects`, `gzip`, `useMtls`, `useQuerystring`). Das Szenario stoppt dabei NICHT — es laeuft weiter und schickt nur Fehler-Alert-Mails, faellt also leicht durch. Beim Klonen eines bestehenden Szenarios den Mapper des Quell-HTTP-Moduls 1:1 mitkopieren, nie "nur url setzen". Wegwerf-Testszenarien `ZZ <Zweck>-Test` nennen und nach dem Test loeschen statt deaktivieren; Alert-Mails koennen dem Loeschen nachlaufen, daher bei einer Make-Fehlermail zuerst `scenarios_list` pruefen — steht das Szenario nicht mehr drin, ist nichts zu tun.
 
+## Windows/PowerShell — JSON- und Config-Dateien schreiben (BOM-Falle)
+
+Windows PowerShell 5 schreibt mit `Set-Content`, `Out-File` und `>` UTF-8 **mit BOM**. Ein BOM macht eine
+JSON-Datei fuer viele Parser ungueltig (`Unexpected token '', "{ …" is not valid JSON`) — betrifft
+`plugin.json` im Marketplace-Repo genauso wie App-Configs, `.env`-artige Dateien und alles, was ein
+Programm spaeter parst. Immer so schreiben:
+
+```powershell
+[System.IO.File]::WriteAllText($pfad, $text, (New-Object System.Text.UTF8Encoding($false)))
+```
+
+Der eigentliche Schaden entsteht meist erst danach: Ein Programm, das seine Config nicht parsen kann,
+schreibt sie beim naechsten Start haeufig mit **Defaults neu** — dann sind die Einstellungen weg, ohne
+dass jemand etwas geloescht hat (am 20.08.2026 genau so mit der Claude-Desktop-Config passiert). Deshalb
+gilt: vor dem Schreiben Backup, nach dem Schreiben verifizieren (`ConvertFrom-Json` **und** die ersten
+Bytes gegen `EF BB BF` pruefen), und laufende Programme vorher beenden — viele schreiben ihre Config beim
+Beenden aus dem Speicher zurueck und ueberschreiben die Reparatur sonst wieder.
+
+Zweite Falle im selben Umfeld: PowerShell-**Einzeiler**, die ueber ein Tool/MCP durchgereicht werden,
+verlieren `$`-Variablen (`$_`, `$b` …) und scheitern mit Parser-Fehlern. Solche Aufgaben in eine `.ps1`
+schreiben und mit `powershell -NoProfile -ExecutionPolicy Bypass -File …` starten.
+
 ## Subdomains
 
 - `www.` = Live.
