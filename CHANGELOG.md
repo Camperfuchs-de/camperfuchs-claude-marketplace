@@ -9,6 +9,19 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.47.0 (2026-08-20)
+
+- `camperfuchs-zahlungserinnerungen`: Wer welchen Erinnerungs-Schalter sehen darf. Die Anzahlung
+  geht auf das Camperfuchs-Konto, deshalb ist ihre Spalte jetzt Admin-only; vorher konnte jeder
+  Vermieter uns die eigene Anzahlungs-Erinnerung abdrehen. Der Restbetrag bleibt bewusst Opt-in
+  mit Default aus (Bjoern, 20.08.2026). Dazu die Solo-Ansicht fuer Vermieter mit einem Standort,
+  die Sperre des Hakens ohne gepflegte `cf_iban` (nur das Einschalten sperren!), das
+  `?bank=1`-Antwortformat des Endpoints und das jsdom-Rezept zur browserlosen Verifikation.
+- `camperfuchs-zahlungserinnerungen`: Neuer Abschnitt, warum PDF-Generator und Legacy-Backend
+  "bezahlt" absichtlich verschieden rechnen (nur `payment`/`partial` vs. jede negative Position),
+  inklusive Zahlenbild 2026: von 598 negativen Positionen sind 261 Rabatte ueber rund 35.000 EUR.
+  Angleichen wuerde den Gesamtpreis-Bug vom 05.08.2026 zurueckbringen.
+
 ## v0.46.0 (2026-08-11)
 
 **Neu: Skill `camperfuchs-relay-chat`** — Landkarte des maskierten Chats zwischen Vermieter und
