@@ -11,7 +11,39 @@ description: Betrieb, Änderung und Troubleshooting des Camperfuchs Vermieter-Ve
 
 Arbeitsweise (chirurgische Blueprint-Edits, validate vor update) steht in `camperfuchs-make` — die gilt hier immer mit. ⚠️ Korrektur 15.06.: der Make-**Hook** `hook.eu1.make.com/…` IST aus der Sandbox per `curl` erreichbar (siehe Test-Rezept), auch wenn die make.com-**App/API** es nicht ist.
 
+## ⚠️ Wer verschickt welche Mail — die wichtigste Korrektur (Stand 20.08.2026, live verifiziert)
+
+Falsche Annahmen an dieser Stelle haben mehrfach zu Fehldiagnosen gefuehrt. Der geprueste Stand:
+
+| Mail | Absender | Weg |
+|---|---|---|
+| Anfrage-Bestaetigung an Mieter + office@ | Spring-Backend (`MailService.sendBookingRequestEmails`) | Mailgun `mg.camperfuchs.de` |
+| Verfuegbarkeits-Mail an den Vermieter | **Make 5482694** | Gmail-Connection (Bjoerns Konto) |
+| Interne JA/NEIN/Rueckfrage-Info an Bjoern | **Make 6030776** (M6/M5/M7) | Gmail |
+| **Zusage-Mail an den Mietinteressenten (JA)** | **`/usr/local/cf/cf-decmail.php` auf srv2**, Cron alle 2 Min | Mailgun |
+| **Absage-Mail mit Alternativen (NEIN)** | ebenfalls `cf-decmail.php` | Mailgun |
+| Rueckfrage an den Mieter | Make 6030776 **M52** (einzige Kundenmail im Szenario) | Gmail |
+| Kontaktdaten-Mail an den Vermieter | `cf-contact-release.php` auf srv2 (Make 6752917 ruft nur auf) | Mailgun |
+| „Fahrzeug ist direkt buchbar" an den Mieter | `cf-directbook.php` auf srv2, Cron alle 10 Min | Mailgun |
+
+**Make hat im JA- und im NEIN-Zweig KEIN Kundenmail-Modul mehr.** Am 20.08.2026 gegen den
+Live-Blueprint geprueft: 6030776 hat **59 Module**, und **M22, M24 und M10 existieren nicht mehr** —
+im ganzen Szenario gibt es **kein einziges `google-email:ActionCreateDraft`**. Der JA-Zweig ist
+M6 → M21 GetRecord → M25 HTTP → M62/M63 Datastore, sonst nichts. Wer eine fehlende oder doppelte
+Kundenmail sucht, schaut ZUERST in `/var/log/cf-decmail.log` auf srv2, nicht in Make.
+
+**Restposten:** Die NEIN-Info-Mail an Bjoern (M5) verspricht im Text noch einen „Antwort-Entwurf …
+liegt in den Gmail-Entwuerfen" — dahinter steckt kein Modul mehr. Text bei Gelegenheit korrigieren.
+
+**Faustregel:** Mail ueber Mailgun = ein System hat sie geschrieben (Spring/srv2/Worker). Mail aus
+Bjoerns Gmail-Konto = Make oder Bjoern selbst.
+
 ## System-Landkarte (Stand 27.07.2026)
+
+> ⚠️ **Historischer Stand.** Die Modulzahlen und die Mail-Module dieses Kapitels sind ueberholt:
+> Stand 20.08.2026 hat 6030776 **59 Module**, und **M22/M24/M10 (Mieter-Entwuerfe) gibt es nicht
+> mehr** — siehe Korrektur-Kapitel oben. Alles ausserhalb der Mail-Module (Router-Aufbau, Filter,
+> Datastores, Picker) gilt weiter.
 
 **Flow:** Neue Mietanfrage (Mail von noreply@) → **5482694 „Integration Gmail"** schickt dem Vermieter die Verfügbarkeits-Mail mit 3 Antwort-Button-Links + 2 Info-Buttons + loggt `status=offen` (seit 14.07. via Router **M27**: Route A = M2 normal, Route B = M26 maskiert — siehe Maskierungs-Abschnitt) → Klick landet bei **6030776 „Vermieter Verfügbarkeit – Button-Antworten"** (Webhook `3164869`, URL `https://hook.eu1.make.com/tu2xumx8rhjynvul6l2stjxq7r5mcc55`).
 

@@ -87,6 +87,21 @@ getrennt mit Bahti klaeren — bis dahin gilt die Regel ausnahmslos.
   Die eingeloggte Browser-Session (`javascript_tool` + `fetch(...,
   {credentials:'include'})`) bleibt Fallback; `get_page_text` zerstoert Bytes
   (Mojibake) — nie Dateiinhalte daraus zurueckschreiben.
+- **Wenn der Sandbox-Weg nicht geht** (Projektordner nicht gemountet, also kein
+  Zugriff auf `.secrets`, oder kein SSH-Key in der Sandbox): dann laeuft es ueber
+  das **ssh/scp aus Git** per Desktop Commander — nicht ueber die Windows-eigene
+  `ssh.exe` (die endet mit Exit 255 ohne Ausgabe):
+  ```powershell
+  & "C:\Program Files\Git\usr\bin\ssh.exe" srv2 "echo <BASE64> | base64 -d | bash"
+  & "C:\Program Files\Git\usr\bin\scp.exe" "<lokal>" srv2:/tmp/datei
+  ```
+  Host-Alias `srv2` steht in `C:\Users\bjoer\.ssh\config` (User root, Key
+  `id_srv2_cf`, `HostKeyAlgorithms +ssh-rsa`). **Immer base64-verpacken**, dann
+  entfaellt das PowerShell-Quoting. Groessere Dateien nicht per base64 in die
+  Kommandozeile, sondern in den Cowork-outputs-Ordner schreiben (auf Windows
+  sichtbar) und per `scp` hochladen. Die „post-quantum"-Warnung ist Rauschen.
+  Verifikation direkt gegen den Origin, an Cloudflare vorbei:
+  `curl --resolve www.camperfuchs.de:443:127.0.0.1 -k …`.
 - **Drift selbst messen** (Wiederholungs-Rezept): Azure
   `items?scopePath=/backend/src&recursionLevel=full` liefert Blob-SHAs;
   auf srv2 `git hash-object` je Working-Tree-Datei; SHA-Vergleich pro Pfad.
@@ -216,6 +231,58 @@ hätte 241 Vermieter-Logins ungeschützt gelassen — deshalb prüft `cfContactI
 `cfMaskContact` auf echte Datensätze anwenden und **nur Zähler** ausgeben (wie viele Felder
 befüllt, Flag ja/nein) — nie Werte. So lässt sich beweisen, dass Buchungen sichtbar bleiben und
 Anfragen nicht lecken, ohne Kundendaten zu dumpen.
+
+## PHP-Seiten und cf-*.js-Addons unter /backend
+
+Neben der Angular-App leben dort eigene Bausteine (alle in `/home/gaz/rentanda/web/backend/`):
+
+- **Eigene Seiten:** `cf-vorgang.php` (Vermieter-Vorgangsseite + Admin-Liste `?p=alle`),
+  `cf-vorgaenge.php` (JSON-API der Liste), `cf-contact-toggle.php`, `cf-contact-release.php`,
+  `cf-decline-notify.php`, `cf-vorgang-url.php` u.a.
+- **Addons:** `cf-*.js`, eingebunden per `<script>`-Tags am Ende von `index.html`, jeweils mit
+  `?v=<version>` als Cache-Bust. Muster: IIFE mit Guard (`if (window.__cfXLoaded) return;`),
+  Token aus `localStorage` (`stoken` || `token`), Kommentarkopf mit Zweck + Rollback.
+  Nach jeder Aenderung an einem Addon **das `?v=` in `index.html` hochzaehlen**.
+- **Auth-Muster fuer eigene Endpoints:** JWT des eingeloggten Nutzers im Header `X-Token`,
+  RS256 gegen `/home/gaz/rent/jwt/key.pub` pruefen (Vorlage: `cf-contact-toggle.php`), danach
+  Rolle aus `users.role`; Stationsnutzer ueber `user_stations` (user_id, station_id). Fuer
+  Skripte laesst sich ein Token mit `/home/gaz/rent/jwt/key.priv` selbst signieren
+  (uid 1006 = b.dunker, ROLE_ADMIN).
+- **Signierte Vorgangs-Links:** `substr(hash_hmac('sha256', 'vorgang|<id>|v', $ck), 0, 32)` mit
+  `$ck = /usr/local/cf/cf-comm.key`; Chat-Link mit dem Praefix `t|`, Liste mit `liste|`, Storno
+  mit `storno|`.
+
+## Vorgang ↔ Buchung verlinken (20.08.2026)
+
+Beide Richtungen sind eingebaut, das Muster taugt fuer weitere Spruenge:
+
+- **Vorgang → Buchung:** in `cf-vorgang.php` haengt an `$akt` ein Button „Buchung im Backend
+  oeffnen" (`/backend/booking;id=<id>`); im Aktions-Menue der Admin-Liste (`?p=alle`) gibt es
+  denselben Eintrag.
+- **Buchung → Vorgang:** Addon `cf-vorgangslink.js` zeigt in der linken Spalte den Kasten
+  „Vermieter-Ansicht" mit Links auf Vorgangsseite und Chat. Die signierte URL holt es von
+  **`cf-vorgang-url.php?b=<id>`** (X-Token; Admin darf alles, Stationsnutzer nur die eigene
+  Station). Popup-Fenster **vor** dem fetch oeffnen, sonst greift der Popup-Blocker.
+- **Anker-Falle:** Die Zeile „Vorgang: BZROLB" ist gesplittet — ein Element traegt nur
+  „Vorgang:", die Nummer steht daneben. Auf `^Vorgang:` pruefen und den Elternknoten nehmen.
+
+## Zahlen und Abrechnung im Legacy-Datenmodell
+
+- ⚠️ **`booking_payments` ist tot** (letzter Eintrag 2021), ebenso `station_konto` (2022).
+  Wer dort nachsieht, haelt jeden Vorgang fuer unbezahlt.
+- **Zahlungen sind negative `booking_positions`** mit `type='partial'`: `gesamt` = Summe
+  positiver, `gezahlt` = Summe negativer Positionen. Genau so rechnen `cf-zusage-reminder.php`
+  und `cf-freigabe-watch.php`.
+- **Provisionsstatus** steht in `bookings.meta.cf_abr` = `{at, nr, total}` (`nr` = optionale
+  Lexware-Rechnungsnummer, `total` = abgerechneter Betrag fuer die Delta-Erkennung bei
+  Verlaengerungen). Der Button „Als abgerechnet markieren" fragt per `prompt()` nach der Nummer
+  und schreibt genau dieses Feld. Provision = 10 % netto vom Brutto + 19 % MwSt.
+- **Status der Vorgangsseite:** `cf_vorgang.status`, ueberschrieben von `bookings.type = 3`
+  (→ „gebucht") und `cancelled = 1` (→ „storniert"). Verlaufseintraege kommen aus
+  `cf_vorgang_event` (kinds: vermieter_mail, entscheidung, seitenkanal, mieter_mail,
+  kontaktfreigabe, nachricht, dokument).
+- **DB:** DO-managed MySQL, der `mysql`-Client braucht `-P25060`. **`NOW()` laeuft in UTC**, die
+  Serveruhr in CEST — `cf_vorgang_event.ts` wird als UTC interpretiert.
 
 ## Verwandte Skills
 `camperfuchs-legacy-srv2-mail` (SSH-Zugang, sicherer Edit-Workflow, Mail/DMARC),

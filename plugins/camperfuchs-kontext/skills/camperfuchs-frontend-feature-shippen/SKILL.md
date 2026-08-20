@@ -70,6 +70,25 @@ TSX-Syntaxcheck ohne vollen Build: `npx --yes esbuild <datei>.tsx --loader:.tsx=
 --outfile=NUL`. (SCSS-only-Änderungen: esbuild greift nicht → der staging-Build
 ist das Gate.) Worktrees nach Merge aufräumen (`git worktree remove`).
 
+### Lint-Vorcheck vor dem Push (spart eine ganze Build-Runde auf dem langsamen Pool)
+
+Der `pr-build` laesst **ESLint** mitlaufen; ein einziger Verstoss killt Build 1, und du wartest
+15+ Minuten auf Build 2 (teuer gelernt 24.07.2026: `@typescript-eslint/prefer-regexp-exec` liess
+Build 3813 durchfallen). Deshalb VOR dem Commit den geaenderten Code pruefen:
+
+```
+cd F:\dev\cf-wt-<kurz> && npx eslint <geaenderte Datei>
+```
+
+Schnell zuschlagende Regeln in diesem Repo:
+- **`prefer-regexp-exec`**: NIE `str.match(re)` fuer einen einfachen Match — Pattern vorab
+  definieren und `re.exec(str)` benutzen.
+- **`no-unused-vars`** / ungenutzte Imports (bleiben nach einem Edit oft uebrig).
+- Fehlende React-Hook-Dependencies (`react-hooks/exhaustive-deps`).
+
+Laeuft `eslint` im Worktree nicht sauber (Setup fehlt), mindestens den Diff manuell gegen diese
+Regeln durchsehen, bevor gepusht wird.
+
 ## Schritt 2 — Commit + Push (SSH, nicht PAT)
 ```
 DC start_process  git add <datei> & git -c user.name="Bjoern Dunker" -c user.email="b.dunker@camperfuchs.de" commit -q -m "<typ>(scope): …"
@@ -115,12 +134,15 @@ fixed = kaputt.encode('latin-1').decode('utf-8')   # laeuft es durch, war es gen
 Dann als normalen Fix-PR main → staging → prod durchziehen (Diff enthaelt NUR die Zeichen,
 keine Logik). Beispiel: PR 1654/1655/1656 am 01.08.2026.
 
-## Schritt 3 — PR → main (NUR Browser; PAT ist abgelaufen)
-⚠️ **PAT ist abgelaufen (Stand 14.06.2026).** `curl -u ":$PAT" …/_apis/…` liefert
-`{"code":"rest_not_logged_in"}` (HTTP-Body 401). Also KEIN REST-Ship-Loop mehr —
-**alle Azure-Aktionen über den eingeloggten Browser** (Claude in Chrome). PAT vor
-Verlass darauf einmal testen; wenn tot, gar nicht erst versuchen. (Öffentliche
-API-/Live-Checks gegen www/staging brauchen keinen PAT.)
+## Schritt 3 — PR → main (Browser oder REST — PAT vorher testen)
+⚠️ **Der PAT-Status schwankt.** Am 14.06.2026 war er abgelaufen (`curl -u ":$PAT" …/_apis/…`
+lieferte `{"code":"rest_not_logged_in"}`, HTTP 401) — daher stand hier lange „nur Browser".
+Inzwischen laeuft der REST-Weg wieder (`camperfuchs-plugin-sync` und `camperfuchs-legacy-backend`
+setzen ihn voraus, zuletzt im August 2026 genutzt). **Regel: PAT einmal mit einem harmlosen
+GET testen** — antwortet er, ist der REST-Ship-Loop der schnellere Weg; kommt 401, alle
+Azure-Aktionen ueber den eingeloggten Browser (Claude in Chrome) fahren. Ein dritter Weg, wenn
+weder PAT noch Browser ziehen: **git ueber SSH** (Push/Commit gehen unabhaengig vom PAT).
+(Oeffentliche API-/Live-Checks gegen www/staging brauchen ohnehin keinen PAT.)
 
 ⚠️ **Azure-SPA-Freeze (teuer gelernt 14.06.):** Create-/Diff-Seiten erreichen
 manchmal nie „document_idle" → `screenshot`/`read_page`/`find` scheitern mit

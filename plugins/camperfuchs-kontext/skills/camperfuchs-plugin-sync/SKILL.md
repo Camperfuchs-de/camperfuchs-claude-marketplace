@@ -43,6 +43,10 @@ ist das Azure-Repo. Veröffentlicht wird per Versionsnummer + Changelog.
 
 ## Workflow A — Stand-Check
 
+Laeuft auch automatisch: Scheduled Task **`camperfuchs-plugin-stand-check`** (taeglich 8:30) —
+er vergleicht die installierte Version mit dem obersten CHANGELOG-Eintrag und meldet sich nur,
+wenn etwas auseinanderlaeuft.
+
 ```bash
 PAT=$(tr -d ' \r\n' < .secrets/azure-devops-pat.txt)
 B="https://dev.azure.com/camperfuchs/camperfuchs/_apis/git/repositories/eac81030-ec6b-4522-8012-47c887e5c0f2"

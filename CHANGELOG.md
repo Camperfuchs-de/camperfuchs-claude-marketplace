@@ -9,6 +9,31 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.49.0 (2026-08-20)
+
+Konto-Wissen eingezogen und drei ueberholte Aussagen korrigiert (Abgleich der doppelt gefuehrten
+Skills Konto vs. Plugin):
+
+- `camperfuchs-verfuegbarkeits-flow`: neues Kapitel **„Wer verschickt welche Mail"** ganz oben.
+  Am 20.08.2026 gegen den Live-Blueprint geprueft: 6030776 hat **59 Module**, **M22/M24/M10
+  existieren nicht mehr**, im ganzen Szenario gibt es **kein `ActionCreateDraft`**. Die
+  Zusage-/Absage-Mail an den Mietinteressenten schickt `cf-decmail.php` auf srv2 (Cron, Mailgun),
+  nicht Make. Die alte System-Landkarte ist als historischer Stand gekennzeichnet. Restposten
+  notiert: die NEIN-Info-Mail M5 verspricht im Text noch einen Gmail-Entwurf, den es nicht gibt.
+- `camperfuchs-frontend-feature-shippen`: **Lint-Vorcheck vor dem Push** (ESLint laeuft im
+  pr-build mit; `prefer-regexp-exec` liess Build 3813 durchfallen — spart eine 15-Minuten-Runde).
+  Ausserdem die pauschale Aussage „PAT ist abgelaufen, kein REST mehr" ersetzt durch „PAT vorher
+  testen" — der REST-Weg laeuft wieder, git-ueber-SSH ist der dritte Weg.
+- `camperfuchs-legacy-backend`: PHP-Seiten-/`cf-*.js`-Addon-Architektur unter `/backend`
+  (Auth per `X-Token`, `?v=`-Cache-Bust, signierte Vorgangslinks), **Vorgang ↔ Buchung**-
+  Verlinkung inkl. Popup- und Anker-Falle, sowie das **Zahlungs-/Abrechnungs-Datenmodell**
+  (`booking_payments` ist tot, Zahlungen sind negative `booking_positions` type=partial,
+  `bookings.meta.cf_abr`, Provision 10 % netto, MySQL `-P25060`, `NOW()` in UTC). Beim Zugriff
+  ergaenzt, was zu tun ist, wenn der Sandbox-Weg mangels `.secrets`/Key nicht geht (ssh/scp aus
+  Git per Desktop Commander, base64-verpackt).
+- `camperfuchs-plugin-sync`: Scheduled Task `camperfuchs-plugin-stand-check` (taeglich 8:30)
+  beim Stand-Check vermerkt.
+
 ## v0.48.0 (2026-08-20)
 
 - `camperfuchs-projekt`: neues Kapitel **Windows/PowerShell — JSON- und Config-Dateien schreiben
