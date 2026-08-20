@@ -9,6 +9,24 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.50.0 (2026-08-20)
+
+`camperfuchs-legacy-backend` — der Hinweis „Abweichung von Preisliste" und die Preis-Uebernahme.
+
+- **Merksatz aufgenommen:** `getRatePositions()` liefert nur Miete + Servicegebuehr (+ Rabattzeile).
+  Zubehoer steht in `articles.additions` und kommt getrennt; Gebuehren der neuen Buchungsstrecke
+  kennt der Rechner gar nicht. Buchungs-Gesamtbetrag nie gegen diese Liste rechnen.
+- Warum die Box zweimal falsch lag (Angular `stdPriceDiff()` und der Fix vom 05.08.), wie
+  `cfPriceDiffFix v20260820pd2` es loest und was das an echten Vorgaengen gebracht hat (119 → 72).
+- **Neuer Endpoint `/backend/cf-price-apply.php`** dokumentiert: uebernimmt die Preisliste
+  serverseitig, laesst Zubehoer/Gebuehren/Versicherung/Zahlungen stehen, `dry=1` fuer die Vorschau,
+  `force=1` bei bereits erfasster Zahlung. Ersetzt den alten Weg ueber die Fahrzeug-Kacheln.
+- Drei Fallen: `*/` in PHP-Blockkommentaren, `pos()` ist im Legacy-Autoload belegt, und
+  Testvorgaenge lassen sich wegen des `folders`-Selbstbezugs nicht hart loeschen (stornieren +
+  archivieren statt DELETE).
+
+---
+
 ## v0.49.0 (2026-08-20)
 
 Konto-Wissen eingezogen und drei ueberholte Aussagen korrigiert (Abgleich der doppelt gefuehrten

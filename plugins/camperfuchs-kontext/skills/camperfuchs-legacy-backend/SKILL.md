@@ -284,6 +284,59 @@ Beide Richtungen sind eingebaut, das Muster taugt fuer weitere Spruenge:
 - **DB:** DO-managed MySQL, der `mysql`-Client braucht `-P25060`. **`NOW()` laeuft in UTC**, die
   Serveruhr in CEST — `cf_vorgang_event.ts` wird als UTC interpretiert.
 
+## Der Hinweis „Abweichung von Preisliste" und die Preis-Uebernahme (20.08.2026)
+
+**Merksatz: Der Legacy-Preisrechner kennt genau ZWEI Zeilen.** `RateCalculator::getRatePositions()`
+liefert fuer ein Wohnmobil ausschliesslich „Mietpreis pro Tag <Saison>" (aus `articles.season_data`)
+plus „Servicegebuehr" (aus `articles.service_rate`), dazu ggf. eine „Abzgl. X% Rabatt"-Zeile.
+**Zubehoer steht in `articles.additions` und kommt ueber `getAdditions()` getrennt** — es taucht in
+`positions` NIE auf. Gebuehren der neuen Buchungsstrecke (z. B. Zahlungsgebuehr) kennt der Rechner
+gar nicht. Wer den Buchungs-Gesamtbetrag gegen diese Liste rechnet, vergleicht Aepfel mit Birnen.
+
+Genau daran ist die rote Box „Abweichung von Preisliste" zweimal gescheitert:
+
+- Angulars `stdPriceDiff()` zaehlt am Vorgang nur `type='rent'` und vergleicht das mit der
+  KOMPLETTEN Preisliste → meldete die Servicegebuehr als Abweichung.
+- Der Fix vom 05.08.2026 (`cfPriceDiffFix`, im Addon `cf-booking-suggest.js`, weil ein frueherer
+  Bundle-Patch bei einem Deploy verloren ging) verglich `booking.amountTotal` gegen die Liste →
+  meldete jetzt Zubehoer + Zahlungsgebuehr als Abweichung, bei JEDER Online-Buchung.
+  Beispiel 533743: Liste 1.774 EUR, amountTotal 1.882,06 EUR → „-108 EUR", obwohl 11x149 Miete und
+  135 Servicepauschale exakt stimmten; die 108,06 waren 28,06 Zahlungsgebuehr + 80 Endreinigung.
+- **Seit `cfPriceDiffFix v20260820pd2`** wird nur der vergleichbare Kern gerechnet: `type='rent'`
+  plus Zeilen mit `servicegeb|servicepausch` plus Zeilen, die mit `Abzgl.` beginnen. Ohne
+  Mietposition am Vorgang gibt die Funktion `null` zurueck und die Box bleibt unangetastet.
+  Wirkung, an 170 laufenden Vorgaengen gemessen: Box meldete vorher 119x, jetzt 72x.
+
+**„Preis fuer diesen Zeitraum uebernehmen" laeuft serverseitig** (`/backend/cf-price-apply.php`,
+JWT `X-Token`, nur ROLE_ADMIN, Log `/var/log/cf-price-apply.log`). Vorher ging das nur ueber die
+Oberflaeche — `confirmPositions()` ist im Prod-Build ausschliesslich ueber `selectArticle()`
+erreichbar (`ng.probe` ist aus), also musste das Addon „Alternativen anzeigen" klicken und die
+eigene Kachel treffen; das klappte die ganze Fahrzeugliste auf und warf ausserdem Zubehoer mit weg.
+
+Der Endpoint ersetzt gezielt: raus `type='rent'` + `servicegeb|servicepausch` + `Abzgl.`-Zeilen,
+**stehen bleiben** Zubehoer (`additional`), Gebuehren (`fee`), Versicherung, Gutscheine,
+Individuelles und ALLE Zahlungen (`partial`). Neue Zeilen bekommen sinnvolle Typen
+(Miete `rent`, Servicegebuehr `fee`, Rabatt `discount`) — Angular schrieb pauschal alles als `rent`.
+Parameter: `id`, `dry=1` (nur rechnen, liefert remove/add/keep + Summen), `force=1` (schreiben
+trotz erfasster Zahlung). Ohne Mietposition, ohne Preisliste, bei storniertem Vorgang → 409.
+Im Addon (`cfPriceTake v20260820pt4`) zeigt der Button erst diese Vorschau und schreibt erst auf
+Klick. ⚠️ Der Button haengt in der Warnbox — ist die ausgeblendet, ist auch er nicht erreichbar.
+
+⚠️ **Uebernahme ist kein Automatismus.** Bei Vorgaengen, deren Vermieter-Preisliste veraltet ist,
+hebt sie den Preis massiv an (gemessen: 2.324 → 3.644 EUR, weil die Liste Hochsaison sagt und zu
+Standardsaison gebucht wurde). Immer erst die Vorschau lesen.
+
+**Fallen beim Bauen solcher Endpoints:**
+
+- `"Servicegeb*/Servicepausch*"` in einem PHP-Blockkommentar beendet den Kommentar (`*/`) und
+  wirft einen Parse-Error weit unterhalb. `php -l` faengt es — vor jedem Deploy laufen lassen.
+- **`pos()` ist im Legacy-Autoload schon global belegt.** Eigene Helfer brauchen ein Praefix,
+  sonst „Cannot redeclare pos()".
+- **Testvorgaenge lassen sich nicht hart loeschen.** `folders` hat einen Selbstbezug
+  (`parent_id` → `folders.id`), und beim Anlegen einer Buchung entsteht dort ein Ordnerbaum;
+  `DELETE FROM bookings` scheitert am FK. Sauberer Weg: Positionen loeschen, dann
+  `cancelled=1, archived=1` setzen. Nicht in fremde Ordnerbaeume greifen.
+
 ## Verwandte Skills
 `camperfuchs-legacy-srv2-mail` (SSH-Zugang, sicherer Edit-Workflow, Mail/DMARC),
 `camperfuchs-azure-devops` / `camperfuchs-deploy` (NEUES Monorepo),
