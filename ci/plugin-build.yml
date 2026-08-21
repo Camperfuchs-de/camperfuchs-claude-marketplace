@@ -27,14 +27,29 @@ steps:
 
   - script: |
       set -e
-      if git diff --quiet -- camperfuchs-kontext.plugin; then
-        echo "Paket war bereits aktuell, nichts zu committen."
-        exit 0
-      fi
       git config user.email "build@camperfuchs.de"
       git config user.name "Azure Pipeline"
-      git add camperfuchs-kontext.plugin
-      git commit -m "chore: Plugin-Paket automatisch neu gebaut [skip ci]"
-      git push origin HEAD:main
-      echo "Paket neu gebaut und gepusht."
+      # 21.08.2026: Bis zu drei Anlaeufe. Zwischen Build-Start und Push kann eine parallele
+      # Session auf main committen - bei mehreren Claude-Sessions passiert das regelmaessig.
+      # Der Push wird dann abgelehnt und der Build war rot, obwohl das Paket voellig in
+      # Ordnung war (genau so am 21.08. zweimal passiert). Das Paket ist eine erzeugte Datei,
+      # also nicht mergen, sondern vom frischen Stand neu bauen und erneut pushen.
+      for versuch in 1 2 3; do
+        if git diff --quiet -- camperfuchs-kontext.plugin; then
+          echo "Paket ist aktuell, nichts zu committen."
+          exit 0
+        fi
+        git add camperfuchs-kontext.plugin
+        git commit -m "chore: Plugin-Paket automatisch neu gebaut [skip ci]"
+        if git push origin HEAD:main; then
+          echo "Paket neu gebaut und gepusht (Anlauf $versuch)."
+          exit 0
+        fi
+        echo "Push abgelehnt, main ist weitergelaufen - neu aufsetzen (Anlauf $versuch)."
+        git fetch origin main
+        git reset --hard FETCH_HEAD
+        python3 ci/plugin_pack.py --write
+      done
+      echo "Auch nach drei Anlaeufen kein Push moeglich - main aendert sich zu schnell." >&2
+      exit 1
     displayName: 'Paket zurueckcommitten, falls veraltet'
