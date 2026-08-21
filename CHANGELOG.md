@@ -9,7 +9,7 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
-## 0.51.0 – 21.08.2026
+## v0.51.0 (2026-08-21)
 
 **Was am 21.08. auf srv2 gelernt wurde — drei Fallen, die zusammen die halbe Grundlast der Box ausmachten.**
 
