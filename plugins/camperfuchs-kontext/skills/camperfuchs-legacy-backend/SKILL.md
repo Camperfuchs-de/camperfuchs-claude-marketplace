@@ -388,6 +388,40 @@ Drei Lehren:
 Ein sich stapelnder Cron-Job lässt sich mit `flock -n` grundsätzlich verhindern — mehrere
 `cf-*`-Jobs auf srv2 machen das bereits vor.
 
+## Eine Anfrage haengt am Standort, nicht am Fahrzeug-Besitzer (21.08.2026, teuer gelernt)
+
+Vorgang #1W2KWY: Ein Mietinteressent wartete zwei Tage, der Vermieter hatte nie etwas gesehen.
+Ursache war ein leeres Feld — **Station 4045 (Hemer) hatte weder `email` noch `mobil`**. Die
+Anfrage-Mail ging nur an `office@`, und `cf-nudge24` uebersprang den Vorgang **still**
+(`SKIP ... Station ohne Mail`, nur im Log). Betroffen waren ueber drei Monate **6 Anfragen**,
+alle bei derselben Station. Niemand hat es gemerkt, bis der Kunde nachfragte.
+
+Zwei Dinge, die man beim Nachforschen zwingend richtig machen muss:
+
+**1. Die Zuordnung Anfrage → Standort laeuft ueber `article_locations`, NICHT ueber
+`articles.station_id`.** Beim betroffenen Fahrzeug zeigte `articles.station_id` auf Station 4034
+(Hagen, mit vollstaendigen Kontaktdaten), waehrend `article_locations.location_id` = 4045 (Hemer,
+ohne Kontaktdaten) war — und `bookings.station_id` folgt dem Standort. Wer ueber `station_id`
+joint, sieht ueberall gepflegte Vermieter und findet den Fehler nie. Derselbe Vermieter kann
+mehrere Stationen haben, von denen nur eine gepflegt ist.
+
+**2. „Fahrzeug vorhanden" heisst `articles.public = 1` + nicht `deleted` + `article_locations.visible = 1`.**
+Ein rohes `COUNT(*) FROM articles WHERE station_id = ...` zaehlt Karteileichen mit. Damit sah es
+so aus, als haetten 11 CF-gelistete Stationen bis zu 10 Fahrzeuge ohne hinterlegte Mail — real
+ist bei allen elf **kein einziges Fahrzeug oeffentlich sichtbar**. Eine Ueberwachung auf dieser
+Zahl haette 11 Dauer-Fehlalarme erzeugt und den echten Fall trotzdem verpasst. Bjoerns Regel
+gilt: Fahrzeugzahlen nie selbst zusammenfiltern, immer gegen die Live-Sicht gegenpruefen.
+
+**Waechter dagegen:** `/usr/local/cf/cf-station-mail-watch.php`, Cron `cf-station-mail-watch`
+(taeglich 8:10, Log `/var/log/cf-station-mail-watch.log`). Zwei Checks — akut (offene Anfrage
+`type=1`, Reise in der Zukunft, Station ohne `email`) und vorsorglich (sichtbares Fahrzeug ueber
+`article_locations` an einer Station ohne `email`). DRY-RUN ist Standard, Versand nur mit
+`--live`, Mail nur bei Treffern. Notaus: `#` vor die Cron-Zeile.
+
+Merksatz: **Ein Filter, der nichts findet, kann auch bedeuten, dass die Meldung nie ankam.**
+Ein stilles `continue` in einer Automatik ist ein blinder Fleck — es gehoert immer eine Meldung
+an einen Menschen dahinter, nicht nur eine Zeile im Log.
+
 ## Verwandte Skills
 `camperfuchs-legacy-srv2-mail` (SSH-Zugang, sicherer Edit-Workflow, Mail/DMARC),
 `camperfuchs-azure-devops` / `camperfuchs-deploy` (NEUES Monorepo),

@@ -9,6 +9,22 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.52.0 (2026-08-21)
+
+**Warum eine Anfrage zwei Tage liegenblieb — und was man beim Nachforschen falsch machen kann.**
+
+- `camperfuchs-legacy-backend`: **Eine Anfrage haengt am Standort, nicht am Fahrzeug-Besitzer.**
+  Vorgang #1W2KWY lief ins Leere, weil Station 4045 (Hemer) weder `email` noch `mobil` hatte;
+  `cf-nudge24` uebersprang ihn still (nur Log-Zeile), ueber drei Monate waren 6 Anfragen betroffen.
+  Neu dokumentiert: Die Zuordnung Anfrage → Standort laeuft ueber `article_locations`, NICHT ueber
+  `articles.station_id` (beim Fall zeigte `station_id` auf die gepflegte Schwester-Station, die
+  Anfrage ging an die ungepflegte). Und „Fahrzeug vorhanden" heisst `public=1` + nicht `deleted` +
+  `visible=1` — ein rohes `COUNT(*)` auf `articles` zaehlt Karteileichen und haette 11
+  Dauer-Fehlalarme erzeugt, waehrend der echte Fall durchgerutscht waere. Dazu der neue Waechter
+  `cf-station-mail-watch` (Cron taeglich 8:10, DRY-RUN Standard, Mail nur bei Treffern).
+  Merksatz: Ein stilles `continue` in einer Automatik ist ein blinder Fleck — dahinter gehoert
+  eine Meldung an einen Menschen, nicht nur eine Zeile im Log.
+
 ## v0.51.0 (2026-08-21)
 
 **Was am 21.08. auf srv2 gelernt wurde — drei Fallen, die zusammen die halbe Grundlast der Box ausmachten.**
