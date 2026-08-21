@@ -337,6 +337,57 @@ Standardsaison gebucht wurde). Immer erst die Vorschau lesen.
   `DELETE FROM bookings` scheitert am FK. Sauberer Weg: Positionen loeschen, dann
   `cancelled=1, archived=1` setzen. Nicht in fremde Ordnerbaeume greifen.
 
+## Der Bild-Endpoint liefert ohne Breitenangabe das Original (21.08.2026)
+
+`FrontendArticleController::imageAction` bedient
+`/api/articles_frontend/c/{article}/{image}[/{width}]`. Nur **mit** `/{width}` entsteht ein
+Thumbnail; **ohne** geht die Originaldatei roh raus. Und genau ohne Breite verlinkt der Controller
+die Galerie-Bilder und die Grundrisse (`outlineDay`/`outlineNight`) — eine Breite bekommt allein
+`thumbnail`.
+
+Folge: bis zu **63,2 MB für ein einzelnes Bild**; 2.702 der 14.419 Dateien in
+`/home/gaz/storage/files` liegen über 1,2 MB. Cloudflare Polish fasst so große Dateien nicht an
+(siehe `camperfuchs-projekt`), sie gingen also ungebremst an den Browser.
+
+Seit dem 21.08. deckelt `FileService::getCappedOriginal()` Originale über 1,2 MB auf 1600 px:
+
+- **Format bleibt** (`convert -thumbnail 1600x> -strip`), damit die Grundrisse ihren Alphakanal
+  behalten. JPEG zusätzlich `-quality 82 -interlace Plane`.
+- **Opake PNGs werden JPEG** — geprüft per `identify -format %[opaque]`. Ein PNG-Foto bleibt sonst
+  auch bei 1600 px über 2 MB und fällt erneut durch Polish. Der Content-Type wandert mit
+  (Referenzparameter), sonst lägen JPEG-Bytes unter `image/png`.
+- **Scheitert `convert`, bleibt es beim Original.** Ein Bild darf nie verschwinden, nur weil die
+  Wandlung hakt.
+- Ergebnis der Stichprobe über die 60 vorher größten: **kein einziges mehr über 1,5 MB**,
+  Durchschnitt 889 → 444 KB.
+
+Nach so einer Änderung müssen die alten Kopien aus dem Edge-Cache: die betroffenen URLs gezielt
+purgen (Cache-Lebensdauer sonst 7 Tage). ImageMagick ist hier 6.8.9 von 2014 — **WebP-Ausgabe nach
+stdout funktioniert nicht** (`webp:-` liefert 0 Bytes), deshalb Format behalten und Polish die
+Umwandlung überlassen.
+
+## Cron: `* */2` ist nicht „alle zwei Stunden" (21.08.2026)
+
+In der root-Crontab stand `* */2 * * * /home/gaz/s3copy.sh` — gemeint war `0 */2`. Mit `*` im
+Minutenfeld startet der Job in jeder geraden Stunde **60-mal**. `s3copy.sh` synchronisiert 17 GB
+nach DO Spaces, ein Lauf dauert weit länger als eine Minute, also stapelten sich die Läufe:
+**load 4,06 bei 4 Kernen**, zwei `aws s3 sync` mit je 90 % CPU. Die `gaz`-Crontab enthielt
+denselben Job korrekt mit `0 */2` — die root-Zeile war eine Dublette **mit** Tippfehler.
+
+Nach dem Entfernen: **load 0,24.**
+
+Drei Lehren:
+
+- **Bei „Server ist langsam" zuerst `ps` nach CPU sortieren**, bevor Query oder Index verdächtigt
+  werden. Der Verursacher stand hier ganz oben und war in zwei Minuten gefunden.
+- **Cron-Zeilen beim Anlegen laut vorlesen.** „Stern Schrägstrich zwei" im Minutenfeld heißt
+  jede Minute, nicht alle zwei Stunden.
+- **Läuft derselbe Job in zwei Crontabs, ist eine davon vermutlich überflüssig.** Vor dem
+  Korrigieren prüfen, ob man ihn nicht einfach löschen kann.
+
+Ein sich stapelnder Cron-Job lässt sich mit `flock -n` grundsätzlich verhindern — mehrere
+`cf-*`-Jobs auf srv2 machen das bereits vor.
+
 ## Verwandte Skills
 `camperfuchs-legacy-srv2-mail` (SSH-Zugang, sicherer Edit-Workflow, Mail/DMARC),
 `camperfuchs-azure-devops` / `camperfuchs-deploy` (NEUES Monorepo),

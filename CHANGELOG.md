@@ -9,6 +9,31 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## 0.51.0 – 21.08.2026
+
+**Was am 21.08. auf srv2 gelernt wurde — drei Fallen, die zusammen die halbe Grundlast der Box ausmachten.**
+
+- `camperfuchs-relay-chat`: **Die Listenansicht fragt gesammelt, nicht je Zeile.** `chatList` rief
+  für jede der bis zu 40 Zeilen einzeln `/api/bookings/<id>` auf — 112 Anfragen je Minute rund um
+  die Uhr. Neuer Endpoint `/backend/cf-chatbulk.php` beantwortet alle IDs in einem Aufruf, nutzt
+  dieselben `AccessHelper`-Methoden wie der Einzelabruf und liefert nur Flags, keine Kontaktdaten.
+  Danach 8 Anfragen je Minute. Fällt je Zeile auf den alten Weg zurück, wenn er nicht antwortet.
+- `camperfuchs-relay-chat`: **Ein Cache, dessen Fehler niemand sieht, ist kein Cache.** Der
+  bestehende `caches.default`-Cache in `bkFetch` hat seit Mitte August nie gegriffen — Schlüssel
+  auf einer fremden Domain, und der Hauptaufrufer läuft über workers.dev, wo die Cache-API
+  wirkungslos ist. Alle Fehler landeten in leeren `catch`-Blöcken. Regel: nach dem Einbau messen,
+  ob der Cache greift.
+- `camperfuchs-projekt`: **Bilder ohne `Accept`-Header zu messen misst das Falsche.** Cloudflare
+  variiert nach `Accept`; ohne Browser-Header bekommt man PNG statt WebP. Und Polish überspringt
+  Dateien ab etwa 2 MB komplett — erkennbar am fehlenden `cf-polished`-Header.
+- `camperfuchs-legacy-backend`: **Der Bild-Endpoint liefert ohne Breitenangabe das Original** —
+  gefunden: 63,2 MB für ein Bild. Neuer Deckel auf 1600 px inklusive der Feinheiten (Format
+  behalten wegen der Grundriss-Transparenz, opake PNGs zu JPEG, Rückfall aufs Original wenn
+  `convert` scheitert).
+- `camperfuchs-legacy-backend`: **`* */2` im Cron heißt jede Minute, nicht alle zwei Stunden.**
+  Ein 17-GB-Sync startete dadurch 60-mal pro Stunde und stapelte sich; load 4,06 → 0,24. Bei
+  „Server langsam" zuerst `ps` nach CPU sortieren, bevor Query oder Index verdächtigt werden.
+
 ## v0.50.0 (2026-08-20)
 
 `camperfuchs-legacy-backend` — der Hinweis „Abweichung von Preisliste" und die Preis-Uebernahme.

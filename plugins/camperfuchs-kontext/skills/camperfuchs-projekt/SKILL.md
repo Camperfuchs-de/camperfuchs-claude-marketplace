@@ -229,6 +229,25 @@ Zweite Falle im selben Umfeld: PowerShell-**Einzeiler**, die ueber ein Tool/MCP 
 verlieren `$`-Variablen (`$_`, `$b` …) und scheitern mit Parser-Fehlern. Solche Aufgaben in eine `.ps1`
 schreiben und mit `powershell -NoProfile -ExecutionPolicy Bypass -File …` starten.
 
+## Bilder messen: ohne Accept-Header misst man das Falsche (21.08.2026)
+
+Cloudflare **Polish** steht auf `lossy` mit WebP und wandelt die allermeisten Bilder um — in einer
+Stichprobe 34 von 40. Zwei Fallen dabei:
+
+1. **`curl` ohne Browser-Header bekommt PNG statt WebP.** Die Antwort variiert nach `Accept`
+   (`vary: accept`). Wer die Bildgröße messen will, muss anfragen wie ein Browser:
+   `-H 'Accept: image/avif,image/webp,image/*,*/*;q=0.8'` plus einen echten User-Agent.
+   Ohne das misst man eine Variante, die kein Besucher je bekommt.
+2. **Polish überspringt zu große Dateien.** Ab etwa 2 MB liefert Cloudflare das Original roh aus —
+   erkennbar am **fehlenden `cf-polished`-Header**. Ausgerechnet die dicksten Brocken fallen also
+   durchs Raster. Am 21.08. gefunden: ein einzelnes Fahrzeugbild mit **63,2 MB**, dazu 2.702
+   Dateien über 1,2 MB im Bestand.
+
+Konsequenz: **Polish ist kein Ersatz dafür, klein auszuliefern.** Der Legacy-Bild-Endpoint deckelt
+seit dem 21.08. serverseitig auf 1600 px (siehe `camperfuchs-legacy-backend`), erst danach greift
+Polish zuverlässig. Wer prüfen will, ob eine Bild-Optimierung wirkt, misst mit Browser-Headern und
+schaut auf `cf-polished` und `cf-cache-status`.
+
 ## Subdomains
 
 - `www.` = Live.

@@ -101,6 +101,53 @@ Kunden und Provisionsbasis. Erst die Preisliste prüfen, dann mit dem Vermieter 
    eine Meldung „Relay-Nachricht OHNE Zuordnung".
 5. Erst dann Worker-Code oder Make-Szenario ansehen.
 
+## Die Listenansicht fragt gesammelt, nicht je Zeile (21.08.2026)
+
+`chatList` rief für **jede** der bis zu 40 Listenzeilen einzeln `GET /api/bookings/<id>` auf srv2
+auf. Jeder dieser Aufrufe bootet dort ein komplettes Symfony — gemessen **112 Anfragen je Minute
+rund um die Uhr** für immer dieselben rund 36 Vorgänge, also die halbe Grundlast der Box.
+
+Seit dem 21.08. beantwortet **`/backend/cf-chatbulk.php`** alle IDs in einem Aufruf
+(0,15 s für 7 IDs gegenüber 0,19 s für eine einzelne). Danach: **8 Anfragen je Minute.**
+
+Der Endpoint entscheidet bewusst **nichts selbst**, sondern ruft dieselben Helfer wie der
+Einzelabruf: `AccessHelper::userHasAccessToBooking` und `::cfContactIsMasked`. Damit kann die
+Sichtbarkeit nicht auseinanderlaufen, auch nicht wenn die Maskierungsregeln wieder angepasst
+werden. Ausgeliefert werden nur Flags (`v`, `full`) plus Firma, Ort und Kennzeichen —
+**keine Kontaktdaten**. Deckel: 60 IDs je Aufruf, JWT-Pflicht (RS256 lokal gegen
+`/home/gaz/rent/jwt/key.pub` geprüft).
+
+Im Worker fällt **jede Zeile einzeln** auf den alten `bkFetch`-Weg zurück, wenn der Endpoint
+nicht antwortet. Dann ist es wieder langsam, aber nie falsch. Rollback = Datei auf srv2 löschen.
+
+**Wer eine neue Listen- oder Übersichtsansicht baut, fragt gesammelt.** Ein `Promise.all` über
+40 Einzelabrufe sieht im Code harmlos aus und ist es nicht — parallel heißt nicht billig.
+
+## Ein Cache, dessen Fehler niemand sieht, ist kein Cache (21.08.2026)
+
+`bkFetch` cachte seine Antworten seit dem 12.08. in `caches.default` — und es hat **nie
+funktioniert**. Zwei Gründe, beide lautlos:
+
+1. Die Cache-API nimmt nur Schlüssel auf einem Hostnamen der **eigenen Zone** an. Der Schlüssel
+   lautete `https://bk.cache.invalid/…` — diese Domain gehört uns nicht, der `put` schlug fehl.
+2. Der Hauptaufrufer `/chat-list` läuft über **`cf-mailstatus.b-dunker.workers.dev`**, und
+   **auf workers.dev ist die Cache-API wirkungslos**, egal welcher Schlüssel.
+
+Weil jeder Fehler in einem leeren `catch (e) { }` landete, sah der Code monatelang nach „gefixt"
+aus, während die Last unverändert weiterlief.
+
+Daraus zwei Regeln:
+
+- **Nach dem Einbau eines Caches messen, ob er greift** — Trefferquote oder schlicht die Last
+  am Ziel. Ein Cache ohne Messung ist eine Behauptung.
+- **`caches.default` nur auf einer eigenen Zonen-URL verwenden, nie auf workers.dev.** Wenn ein
+  Endpunkt über workers.dev erreichbar sein muss, ist KV die richtige Ablage — oder man beseitigt
+  wie oben gleich den Grund für die vielen Abfragen.
+
+Ein Cache im Isolat (`BK_MEM`, Modul-globale `Map`) funktioniert überall und kostet nichts, wirkt
+aber nur innerhalb eines Isolats: gemessen brachte er allein **112 → 84** Anfragen je Minute.
+Erst der gesammelte Abruf brachte den Sprung auf 8.
+
 ## Verwandt
 
 `camperfuchs-verfuegbarkeits-flow` (die Make-Szenarien, die den Chat füttern),
