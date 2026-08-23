@@ -9,6 +9,14 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## cf-tafel 0.1.0 — 23.08.2026
+
+**Neues, zweites Plugin im Marketplace:** `cf-tafel` — die Pflicht-Arbeitsweise fuer parallele
+Claude-Sessions ueber die zentrale Tafel https://tafel.camperfuchs.de (anmelden, sperren,
+Warteschlange "braucht Bjoern", Lagebild, Fingerabdruck-Register). Eine Skill mit den
+curl-Rezepten; der Zugriffsschluessel liegt bewusst NICHT im Plugin, sondern in Bjoerns
+.secrets-Ordner. Ersetzt das manuelle Skill-Kopieren in die Accounts B und C.
+
 ## v0.52.0 (2026-08-21)
 
 **Warum eine Anfrage zwei Tage liegenblieb — und was man beim Nachforschen falsch machen kann.**

@@ -10,6 +10,11 @@
       "name": "camperfuchs-kontext",
       "source": "./plugins/camperfuchs-kontext",
       "description": "Geteilter technischer Projektkontext (Architektur, Infra, Repo, Caching, SEO, Konventionen) + WP-502-Notfall-Runbook."
+    },
+    {
+      "name": "cf-tafel",
+      "source": "./plugins/cf-tafel",
+      "description": "Zusammenarbeit paralleler Claude-Sessions: Anmelden, Sperren, Warteschlange und Lagebild ueber tafel.camperfuchs.de."
     }
   ]
 }

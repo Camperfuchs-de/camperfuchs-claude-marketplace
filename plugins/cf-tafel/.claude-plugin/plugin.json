@@ -1,0 +1,9 @@
+{
+  "name": "cf-tafel",
+  "version": "0.1.0",
+  "description": "Zusammenarbeit paralleler Claude-Sessions bei Camperfuchs: Anmelden, Sperren, Warteschlange und Lagebild ueber tafel.camperfuchs.de. Enthaelt KEINE Secrets.",
+  "author": {
+    "name": "Rentanda GmbH / Camperfuchs",
+    "email": "b.dunker@camperfuchs.de"
+  }
+}
