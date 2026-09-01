@@ -9,6 +9,15 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.54.0 (2026-09-02)
+
+- `camperfuchs-wp-droplet-ops`: neuer Abschnitt **WPCode-Snippets aendern**. Die Shortcodes auf
+  edition. (z.B. `[cf_haendlerverzeichnis]`, Post 2472) liegen als WPCode-Snippets vor. Zwei
+  Fallen, die am 02.09. je eine Runde gekostet haben, sind jetzt dokumentiert: `wp post update`
+  ohne `--user=1` strippt den PHP-Code still per KSES und meldet nur "Inhalt ist leer"; und WPCode
+  liefert aus dem Array-Cache in der Option `wpcode_snippets` aus, nicht aus dem Post - wer nur
+  den Post aendert, sieht im Frontend nie etwas. Inklusive PHP-Rezept zum Patchen der Option.
+
 ## v0.53.0 (2026-09-02)
 
 **Das Kostenmuster hat eine fuenfte Fundstelle — und sie warf 500er.**

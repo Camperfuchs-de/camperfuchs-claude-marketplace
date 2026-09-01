@@ -178,6 +178,43 @@ weit ueber dem RAM. Ein globaler memory_limit-Bump auf 512M hat es verschaerft. 
 Bei 500 / "Error establishing a database connection": erst `journalctl -u mysql --since '15 min ago'`
 + `free -h` + `ps aux --sort=-rss | head` - fast immer OOM, nicht die DB selbst. MySQL restartet selbst.
 
+## WPCode-Snippets aendern (Shortcodes wie das Haendlerverzeichnis)
+
+Die Shortcodes auf edition. (z.B. `[cf_haendlerverzeichnis]`) leben NICHT in einem Plugin oder in
+`functions.php`, sondern als WPCode-Snippets: Plugin `insert-headers-and-footers`, Post-Type
+`wpcode`. Das Haendlerverzeichnis ist Post **2472** (~113 KB PHP+CSS+JS). Zwei Fallen kosten sonst
+garantiert eine Stunde (beide am 02.09.2026 erlebt):
+
+- **`wp post update` ohne `--user=1` verschluckt den PHP-Code still.** Ohne User-Kontext greift
+  KSES und strippt alles; wp-cli meldet dann nur `Warning: Inhalt, Titel und Textauszug sind leer`
+  und der Post bleibt unveraendert. Kein Fehler, kein Exit-Code. **Immer `--user=1` anhaengen**,
+  dann greift `unfiltered_html`. Fallback, falls es weiter klemmt: per SQL an WordPress vorbei.
+- **WPCode liefert aus einem Array-Cache aus, nicht aus dem Post.** Die Option `wpcode_snippets`
+  (~116 KB, serialisiertes Array) haelt eine Kopie des Codes. Wer nur den Post 2472 aendert,
+  sieht im Frontend **nie** eine Aenderung - auch nach jedem Cache-Purge nicht. Die Option muss
+  mitgepatcht werden, und zwar per PHP (nicht per SQL-String-Replace, sonst zerreisst die
+  Serialisierung an den Laengenangaben):
+
+```bash
+cat > /tmp/p.php <<'PHP'
+<?php
+$o = get_option('wpcode_snippets'); $n=0;
+$walk = function(&$v) use (&$walk,&$n) {
+  if (is_array($v)) { foreach ($v as &$x) { $walk($x); } return; }
+  if (is_string($v) && strpos($v,'<ANKER>')!==false) { $v=str_replace('<ALT>','<NEU>',$v); $n++; }
+};
+$walk($o);
+if ($n) { update_option('wpcode_snippets',$o); }
+echo "ersetzt: $n
+";
+PHP
+wp --allow-root eval-file /tmp/p.php   # danach wp cache flush + Supercache-Verzeichnis leeren
+```
+
+Reihenfolge, die funktioniert: Post 2472 patchen (mit `--user=1`) **und** die Option patchen,
+dann `wp cache flush` + `rm -rf wp-content/cache/supercache/<host>/*`. Erst dann live pruefen.
+Zum Wiederfinden: `wp db query "SELECT ID,post_title FROM wp_posts WHERE post_type='wpcode'"`.
+
 ## Fallen
 
 - **PowerShell frisst `$Variablen` in SSH-Einzeilern.** `sed -i 's/^$cache_enabled.../'` wurde zu
@@ -194,5 +231,7 @@ Bei 500 / "Error establishing a database connection": erst `journalctl -u mysql 
   senden; bei Bedarf dort deaktivieren.
 - **fail2ban-Jails** `wordpress-hard/-soft` + `sshd` aktiv - nach vielen Fehl-Logins IP-Ban pruefen
   (`fail2ban-client status wordpress-hard`).
+- **WPCode-Snippet geaendert, aber nichts passiert?** Post allein reicht nicht, die Option
+  `wpcode_snippets` haelt eine Kopie -> eigener Abschnitt oben.
 - Kadence-/REST-Content-Mechanik (Seiten bauen, Meta-Fallen) steht NICHT hier -> Memory
   `project_new_camperfuchs_de` (gilt 1:1 auch fuer edition).
