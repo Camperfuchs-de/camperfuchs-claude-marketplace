@@ -9,7 +9,7 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
-## 0.53.0 — 02.09.2026
+## v0.53.0 (2026-09-02)
 
 **Das Kostenmuster hat eine fuenfte Fundstelle — und sie warf 500er.**
 `CustomerController::indexAction` im Legacy-Backend holte mit `findBy(['scope' => …])` alle
