@@ -9,6 +9,29 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## 0.53.0 — 02.09.2026
+
+**Das Kostenmuster hat eine fuenfte Fundstelle — und sie warf 500er.**
+`CustomerController::indexAction` im Legacy-Backend holte mit `findBy(['scope' => …])` alle
+44.482 Buchungen als volle Doctrine-Entities und verwarf davon die Haelfte erst in PHP. Das
+sprengte beim Admin-Login das 1-GB-`memory_limit` in `JsonResponse.php` — vier HTTP 500 in
+sieben Tagen. Ergaenzt in `camperfuchs-legacy-backend`:
+
+- **Vorfilter in die Query statt `continue` in PHP** — 44.482 → 18.329 Entities, Peak >1 GB →
+  553 MB, 500 → 200. Falle: **ohne `TRIM`** filtern, sonst weicht das Ergebnis vom PHP-Filter
+  ab; `origCount` braucht eine eigene COUNT-Query.
+- **Zugriffsfilter in die Query ziehen.** Jeder Vermieter lud alle 18.329 Buchungen *aller*
+  Partner und verwarf sie per `AccessHelper` — 36 s fuer eine leere Antwort. Mit Join auf
+  `article`/`station` und `st.id IN getLocations($user)`: 37,8 s → 0,2 s Query, live 5,8 s.
+- **Die Regel dazu:** Der Query-Vorfilter muss eine *Obermenge* der AccessHelper-Regel sein und
+  die PHP-Pruefung bleibt als Netz stehen — so kann er nie mehr freigeben, nur weniger laden.
+  Vor dem Live-Schalten beide Varianten fuer mehrere echte Konten auf Ergebnis-Gleichheit
+  pruefen, inklusive `domain_admin` und einem Konto mit leerem Ergebnis.
+- **`cf-commit.sh` trackt nur `/usr/local/cf`, NICHT `/home/gaz/rent`.** Patches am Symfony-
+  Backend laufen am Drift-Netz vorbei und brauchen Backup, Tafel-Eintrag und md5-Diff-Guard.
+
+---
+
 ## cf-tafel 0.1.0 — 23.08.2026
 
 **Neues, zweites Plugin im Marketplace:** `cf-tafel` — die Pflicht-Arbeitsweise fuer parallele

@@ -8,12 +8,12 @@ description: >-
   werden soll — explizit ("altes Backend", "rentapp", "srv2 deployen",
   "ArticleController", "booking-grid", "Buchungs-Kalender im Backend") wie
   implizit ("warum geht mein Fix da nicht live", "wo liegt der Code der
-  Buchungsuebersicht"). KERN-REGEL (teuer gelernt 18.07.2026): Azure-master ist
+  Buchungsuebersicht", "Backend wirft 500", "memory exhausted"). KERN-REGEL (teuer gelernt 18.07.2026): Azure-master ist
   NICHT der Live-Stand — ~4 Jahre Drift, 64 von 561 Dateien in /backend/src
   weichen ab. NIE ab master patchen oder deployen; IMMER erst die Live-Datei von
-  srv2 ziehen, DIESE patchen, mit Diff-Guard davor. Enthaelt System-Landkarte
-  (Azure-IDs, srv2), Live-Bundle-Patch-Rezept ohne Rebuild, Deploy-Realitaet
-  (kein CI; SSH direkt aus der Sandbox) und die teuer gelernten Fallen.
+  srv2 ziehen, DIESE patchen, mit Diff-Guard davor. Enthaelt System-Landkarte,
+  Live-Bundle-Patch-Rezept ohne Rebuild, Deploy-Realitaet (kein CI; SSH aus der
+  Sandbox) und die teuer gelernten Fallen.
 ---
 
 # Camperfuchs Legacy-Backend (rentapp / Old Camperfuchs / srv2)
@@ -421,6 +421,62 @@ gilt: Fahrzeugzahlen nie selbst zusammenfiltern, immer gegen die Live-Sicht gege
 Merksatz: **Ein Filter, der nichts findet, kann auch bedeuten, dass die Meldung nie ankam.**
 Ein stilles `continue` in einer Automatik ist ein blinder Fleck — es gehoert immer eine Meldung
 an einen Menschen dahinter, nicht nur eine Zeile im Log.
+
+## Das Kostenmuster hat eine fuenfte Fundstelle: `/api/customers/` (01.09.2026)
+
+Die Regel „nicht die DB, nicht der Server, sondern Daten die niemand braucht" galt bisher fuer
+`ArticleService`, `booking.component`, die Buchungsliste und Foxi. Am 01.09.2026 kam
+`CustomerController::indexAction` dazu — und zwar als **HTTP 500**, nicht als Langsamkeit:
+
+```php
+// vorher: laedt ALLE 44.482 Buchungen des Scopes als volle Doctrine-Entities
+$bookings = $em->getRepository('BluetrailerDBSchemeBundle:Booking')->findBy(['scope' => $scope]);
+// ... und wirft davon in PHP die Haelfte per continue wieder weg
+```
+
+Beim Admin-Login sprengte das das 1-GB-`memory_limit`, und zwar genau dort, wo Symfony die
+Antwort serialisiert: `OutOfMemoryException … at JsonResponse.php line 145`. Vier solche 500er in
+sieben Tagen. Dazu lief ein `krsort` **innerhalb** der Aufbau-Schleife, also einmal je Buchung
+statt einmal je Gruppe.
+
+**Zwei Eingriffe, beide semantisch neutral:**
+
+1. **Die `continue`-Bedingungen als Vorfilter in die Query ziehen** — 44.482 → 18.329 hydrierte
+   Entities, Peak >1 GB → 553 MB, 500 → 200. Wichtig: **ohne `TRIM`** filtern, sonst weicht das
+   Ergebnis vom PHP-Filter ab (`strlen(' 12 ')` ist 4, `LENGTH(TRIM(' 12 '))` ist 2).
+   `origCount` muss ueber eine eigene COUNT-Query weiter die ungefilterte Gesamtzahl liefern.
+2. **Den Zugriffsfilter in die Query ziehen.** Jeder Vermieter lud alle 18.329 Buchungen *aller*
+   Partner und verwarf sie danach per `AccessHelper::userHasAccessToBooking()` — 36 Sekunden fuer
+   eine **leere** Antwort. Mit `join('b.article','a')->join('a.station','st')` und
+   `st.id IN (getLocations($user))` bzw. `st.domain = user.domain` fuer `domain_admin`:
+   1.372 statt 18.329 Buchungen, 37,8 s → 0,2 s Query, live 36 s → 5,8 s.
+
+**Die Regel dabei:** Der Query-Filter muss eine **Obermenge** der AccessHelper-Regel sein — den
+`deleted`-Check bewusst weglassen — und die PHP-Pruefung bleibt als Sicherheitsnetz stehen. So
+kann der Vorfilter nie mehr freigeben als erlaubt, nur weniger laden. Die Maskierung
+(`cfMaskContact`) laeuft unveraendert weiter: nach dem Fix kamen 332 von 715 Buchungen maskiert
+zurueck.
+
+**Pflicht-Verifikation vor so einem Vorfilter** — sonst sieht ein Vermieter still zu wenig oder
+zu viel: beide Varianten (mit/ohne Filter) fuer mehrere echte Konten durchrechnen und die
+Ergebnis-Struktur auf Gleichheit vergleichen, inklusive eines `domain_admin` und eines Kontos
+mit leerem Ergebnis. Am 01.09. waren alle fuenf identisch — erst danach ging es live.
+
+**Offen geblieben:** Die Admin-Ansicht braucht weiterhin 102 s und liefert 22 MB (12.246
+Kundengruppen). Die Kundensuche laedt die komplette Kundendatenbank und sucht im Browser —
+dasselbe Muster wie die Buchungsliste. Richtiger Fix waere serverseitige Suche, das braucht einen
+rentapp-Rebuild.
+
+## `cf-commit.sh` trackt NICHT `/home/gaz/rent` (01.09.2026)
+
+Der Drift-Wachhund `cf-commit.sh` arbeitet im Repo **`/usr/local/cf`** (die `cf-*.php`-Endpoints).
+Ein Patch am Symfony-Backend unter `/home/gaz/rent` meldet dort korrekt „Nichts zu tun — es gibt
+keine Aenderungen", obwohl `git -C /home/gaz/rent status` die Datei sehr wohl als `M` fuehrt.
+
+**Folge:** Aenderungen am Legacy-Backend laufen am Drift-Netz vorbei. Wer dort patcht, muss die
+Nachvollziehbarkeit selbst herstellen — Backup mit sprechendem Namen unter `/root/`, Eintrag auf
+der Tafel, und den md5 der Ausgangsdatei vor dem Ueberschreiben pruefen (Diff-Guard), damit keine
+parallele Session ueberschrieben wird.
 
 ## Verwandte Skills
 `camperfuchs-legacy-srv2-mail` (SSH-Zugang, sicherer Edit-Workflow, Mail/DMARC),
