@@ -9,6 +9,30 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.55.0 (2026-09-03)
+
+- **camperfuchs-legacy-backend**: Wissen aus der doppelt gefuehrten Konto-Fassung uebernommen —
+  die reinen Anzeige-Status `direktbuchbar` und `abgelaufen` (20.08.), die Korrektur dass
+  `articles.bookable` nicht die Wahrheit ist (maszgeblich ist `MAX(al.bookable)` aus
+  `article_locations`), `provision_status` als drittes totes Feld, die Herkunfts-Ableitung ueber
+  `meta.provisorilyOrigin`, der chat-map-Endpoint samt der 11 Statuswerte, die fehlenden
+  Endpoints und Crons (`cf-status-bulk.php`, `cf-listenstatus.js`, `cf-vorgangslink.js`,
+  `cf-lexware-invoice.php`, `cf-lex-status.php`, `cf-zahlung-event.php`, `cf-status-sync.php`,
+  `cf-verfmail.php`) sowie acht teuer gelernte Fallen (Anker-Kollision, PDF-Vorschau friert die
+  Browsersteuerung ein, geschlossener Dialog ist kein Versand, PDO `ERRMODE_EXCEPTION`,
+  Log-Rechte, Lexware-Drosselung, Service heiszt `storage`, Addon-Intervall).
+- **camperfuchs-frontend-feature-shippen**: Sofort-Abbruch-Check des Waechters ergaenzt
+  (`git merge-base --is-ancestor <sha> origin/prod` als erster Schritt jedes Laufs, Task
+  deaktivieren statt neu planen) plus Querverweis auf `camperfuchs-release-waechter`.
+- **camperfuchs-plugin-sync**: Azure-Weboberflaeche als allerletzter Ausweg dokumentiert
+  (Web-Upload nur flach ohne Ordnerstruktur, Monaco-Editor nicht skriptbar).
+
+Hintergrund: Diese drei Skills lagen doppelt vor — einmal als Konto-Skill, einmal hier. Bei
+`wp-502-debug` nannte die Konto-Fassung eine falsche Live-Origin-IP; im Stoerfall war es Zufall,
+welche Fassung geladen wurde. Die Konto-Fassungen von `wp-502-debug`,
+`camperfuchs-alternativ-angebot` und `camperfuchs-verfuegbarkeits-flow` sind am 03.09.2026 zu
+Verweis-Stubs geworden; die drei hier genannten folgen, sobald diese Version steht.
+
 ## v0.54.0 (2026-09-02)
 
 - `camperfuchs-wp-droplet-ops`: neuer Abschnitt **WPCode-Snippets aendern**. Die Shortcodes auf

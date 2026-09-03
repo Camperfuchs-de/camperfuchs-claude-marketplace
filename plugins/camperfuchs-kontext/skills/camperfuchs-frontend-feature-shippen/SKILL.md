@@ -253,10 +253,15 @@ https://dev.azure.com/camperfuchs/camperfuchs/_git/camperfuchs/pullrequestcreate
 ## Autonom live schalten per Wächter (Scheduled Task) — empfohlen bei langen Builds
 pr-build + je Deploy dauern ~15–18 Min → nicht in der Session abpollen (verbrennt
 Tokens, blockiert Björn). Stattdessen einen **One-Shot Scheduled Task** anlegen,
-der die Kette eigenständig zu Ende führt:
+der die Kette eigenständig zu Ende führt (Mechanik + Sofort-Abbruch-Check → Skill
+`camperfuchs-release-waechter`):
 - Prompt selbst-enthaltend: PR-Nr, Branch, geänderte Datei + Rule-Fingerprint,
   „PAT abgelaufen → Browser", „Freeze → neuer Tab", Merge-Strategien je Branch,
   prod-OK-Status, prod-TABU falls kein OK.
+- **Erster Schritt jedes Laufs: Sofort-Abbruch-Check** — ist der Commit schon von
+  prod-HEAD erreichbar (`git merge-base --is-ancestor <sha> origin/prod`), ist er
+  live → melden + Task deaktivieren, NICHT erneut planen. Bereits erledigte Stufen
+  (main/staging) überspringen.
 - Ablauf pro Lauf: Status der aktuellen Stufe prüfen → wenn fertig, nächste Stufe
   (Promote/Approve/Verify); **wenn noch am Bauen/Deployen, sich selbst ~12 Min
   später neu planen** (`create_scheduled_task` neuer fireAt) und mit Kurzstatus
@@ -444,5 +449,5 @@ Build Validation → Toggle für `main-check-source-branch-pipeline` AUS
 - Deploy-Kette, Approval-Gates, Hotfix/Revert, Agent-Hänger: **camperfuchs-deploy**
 - Lokales Setup / Worktrees / Terminal-Loop: **camperfuchs-lokale-dev-umgebung**
 - Such-/Filter-Spezifika (SearchHeader, Mobil-Sheet, Leerzustand): **camperfuchs-suchfilter**
-- Arbeitsstil/Identität: **camperfuchs-basis** · Wächter-Mechanik: **schedule**
+- Arbeitsstil/Identität: **camperfuchs-basis** · Wächter-Mechanik: **camperfuchs-release-waechter** · **schedule**
 - Tracking statt UI: **camperfuchs-posthog-event** · Fehler nach Deploy: **camperfuchs-sentry-incident**

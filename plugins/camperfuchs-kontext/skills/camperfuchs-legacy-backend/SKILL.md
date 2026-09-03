@@ -157,6 +157,28 @@ Fuer kleine UI-/Logik-Fixes im Angular-Bundle (kein Angular-4-Rebuild noetig):
   bauen (Beispiel: Mobil-Feld Firmendetails, Modul `cfMF`, `?v=20260720mf6` — aktiver
   GET ueber Route-ID statt XHR-Sniffing, denn Angulars Initial-GET feuert in Microtasks
   VOR dem naechsten Script-Tag).
+- ⚠️ **Anker-Kollision durch den eigenen Patch:** Fuegt ein frueherer Anker Code ein, der
+  den String eines spaeteren Ankers enthaelt, schlaegt dessen `substr_count === 1`-Guard
+  fehl. Entweder den eingefuegten Code anders formulieren (`in_array($status,
+  array('offen','rueckfrage'), true)` statt der Oder-Kette) oder die Patch-Reihenfolge
+  drehen. Der Guard muss dabei **vor** dem Schreiben abbrechen — dann bleibt die Datei
+  unangetastet.
+- ⚠️ **PDF-Vorschau und `prompt()` frieren die Browsersteuerung ein** („Cannot attach to
+  this target"). Ausweg: den Datenpfad direkt bedienen (API/DB) oder einen neuen Tab
+  oeffnen.
+- ⚠️ **Ein geschlossener Dialog ist kein Versand** — nach einem Mailversand
+  `POST /api/mail/send` im Apache-Log und `booking_document_history` pruefen.
+- **PDO auf srv2 immer mit `ERRMODE_EXCEPTION`** — sonst liefert `query()` still `false`
+  und die `foreach`-Warnung sieht aus wie „keine Treffer". Stringliterale in SQL ueber
+  Platzhalter, nicht ueber escapte Quotes im base64-Skript.
+- **Logs unter `/var/log` vorher `touch` + `chown www-data`**, sonst schreibt der
+  Endpoint stumm nichts.
+- **Lexware drosselt auf 2 Anfragen/Sekunde** (HTTP 429) → Pause + Retry.
+- **Der Symfony-Service fuer Dateien heisst `storage`**, nicht `storage_service`;
+  Dokument-PDFs liegen im Pool `cf_documents`, `booking_documents.content` ist nur ein Pfad.
+- **Addons ueberleben einen Angular-Rerender nur mit Intervall** (~1 s) plus
+  Guard-Attribut. In Tabellen lieber ein Badge in eine vorhandene Zelle haengen, als eine
+  neue Spalte einzufuegen.
 
 ## Mail/DMARC: Portal-Default-Absender-Falle (21.07.2026)
 
@@ -238,11 +260,20 @@ Neben der Angular-App leben dort eigene Bausteine (alle in `/home/gaz/rentanda/w
 
 - **Eigene Seiten:** `cf-vorgang.php` (Vermieter-Vorgangsseite + Admin-Liste `?p=alle`),
   `cf-vorgaenge.php` (JSON-API der Liste), `cf-contact-toggle.php`, `cf-contact-release.php`,
-  `cf-decline-notify.php`, `cf-vorgang-url.php` u.a.
+  `cf-decline-notify.php`, `cf-vorgang-url.php` (signierte Vorgangs-URL **plus Status und
+  letzte Schritte**, X-Token), `cf-status-bulk.php` (Status + Abrechnungsstand fuer bis zu
+  200 Buchungsnummern auf einmal, X-Token), `cf-lexware-invoice.php` und `cf-lex-status.php`
+  (Provisionsrechnung: Nummer + PDF, Auszahlung) u.a.
 - **Addons:** `cf-*.js`, eingebunden per `<script>`-Tags am Ende von `index.html`, jeweils mit
   `?v=<version>` als Cache-Bust. Muster: IIFE mit Guard (`if (window.__cfXLoaded) return;`),
   Token aus `localStorage` (`stoken` || `token`), Kommentarkopf mit Zweck + Rollback.
-  Nach jeder Aenderung an einem Addon **das `?v=` in `index.html` hochzaehlen**.
+  Nach jeder Aenderung an einem Addon **das `?v=` in `index.html` hochzaehlen**. Im Einsatz
+  sind unter anderem `cf-vorgangslink.js` (Kasten „Stand des Vorgangs" + Status-Chip auf der
+  Buchungsseite) und `cf-listenstatus.js` (Status- und Abrechnungs-Badge in der Buchungsliste).
+- **Cron-Endpoints unter `/usr/local/cf/`:** `cf-zahlung-event.php` (alle 15 Minuten:
+  Zahlungseingang → Verlaufseintrag + Chat-Status), `cf-status-sync.php` (stuendlich:
+  Chat-Status gegen den Legacy-Stand abgleichen), `cf-verfmail.php` (Verfuegbarkeits-Mail an
+  den Vermieter, JA/NEIN oder Direktbuch-Info).
 - **Auth-Muster fuer eigene Endpoints:** JWT des eingeloggten Nutzers im Header `X-Token`,
   RS256 gegen `/home/gaz/rent/jwt/key.pub` pruefen (Vorlage: `cf-contact-toggle.php`), danach
   Rolle aus `users.role`; Stationsnutzer ueber `user_stations` (user_id, station_id). Fuer
@@ -277,12 +308,71 @@ Beide Richtungen sind eingebaut, das Muster taugt fuer weitere Spruenge:
   Lexware-Rechnungsnummer, `total` = abgerechneter Betrag fuer die Delta-Erkennung bei
   Verlaengerungen). Der Button „Als abgerechnet markieren" fragt per `prompt()` nach der Nummer
   und schreibt genau dieses Feld. Provision = 10 % netto vom Brutto + 19 % MwSt.
+- ⚠️ **`provision_status` ist das dritte tote Feld** — 2026 bei allen 3.176 Vorgaengen NULL.
+  Die Listenspalte „Abgerechnet (Prov)" meldet deshalb ueberall „nein"; `cf-listenstatus.js`
+  ueberlagert sie mit der Wahrheit aus `meta.cf_abr`.
 - **Status der Vorgangsseite:** `cf_vorgang.status`, ueberschrieben von `bookings.type = 3`
   (→ „gebucht") und `cancelled = 1` (→ „storniert"). Verlaufseintraege kommen aus
   `cf_vorgang_event` (kinds: vermieter_mail, entscheidung, seitenkanal, mieter_mail,
-  kontaktfreigabe, nachricht, dokument).
+  kontaktfreigabe, nachricht, dokument, zahlung, auszahlung).
 - **DB:** DO-managed MySQL, der `mysql`-Client braucht `-P25060`. **`NOW()` laeuft in UTC**, die
   Serveruhr in CEST — `cf_vorgang_event.ts` wird als UTC interpretiert.
+
+## Der Chat-Status und die zwei reinen Anzeige-Status (20.08.2026)
+
+Vier Oberflaechen zeigen denselben Stand: Vorgangsseite, Buchungsseite, Admin-Liste und der
+Chat unter `/backend/nachrichten`. Der Chat liest `chat_map` im Worker `cf-mailstatus`.
+Setzen und lesen geht **ohne Worker-Deploy**:
+
+```
+POST|GET https://cf-mailstatus.b-dunker.workers.dev/chat-map
+Header:   X-Comm-Key: <Inhalt von /usr/local/cf/cf-comm.key>
+Body:     {"booking":"<id>","status":"gebucht"}
+```
+
+Erlaubt sind genau elf Werte: `offen`, `ja`, `nein`, `rueckfrage`, `ja_freigegeben`,
+`ja_rueckfall`, `abgesagt`, `zusage`, `anzahlung`, `gebucht`, `storniert`.
+
+⚠️ **`cf-status-sync.php` korrigiert nur vorwaerts.** Zustaende, die allein der Chat kennt
+(`zusage`, `rueckfrage`, `abgesagt`, `ja_rueckfall`), fasst der stuendliche Abgleich nicht an —
+einzige Ausnahme ist das Storno.
+
+Dazu kommen zwei reine **Anzeige-Status**. Nichts davon steht in der DB, sie leben allein in
+`cf-vorgang.php`, gelten fuer Liste und Detailseite und greifen nur, wenn der Rohstatus
+`offen` oder `rueckfrage` ist:
+
+| Status | Bedingung | Wirkung |
+|---|---|---|
+| `direktbuchbar` | Fahrzeug am Standort online buchbar | Der Vermieter bekam nur `direktbuchbar_info`, also gar keine JA/NEIN-Frage — Kopf „Kein Handeln noetig", Chat und Zusage bleiben moeglich |
+| `abgelaufen` | `date_from < NOW()` | Reisezeitraum vorbei, es ist nichts mehr zu entscheiden |
+
+Beide raeumen die Arbeitsliste „Du bist dran" auf — sie schrumpfte dadurch von 26 auf 10.
+
+## „Direkt buchbar" steht in `article_locations`, nicht in `articles`
+
+⚠️ `articles.bookable` ist **nicht** die Wahrheit — dort stand fuer ein nachweislich direkt
+buchbares Fahrzeug eine `0`. Massgeblich ist die Kombination Fahrzeug + Standort, so wie es
+`cf-verfmail.php` schon immer gerechnet hat:
+
+```sql
+(SELECT MAX(al.bookable) FROM article_locations al
+  WHERE al.article_id = r.article_id AND al.location_id = r.station_id
+    AND al.visible = 1) direkt
+```
+
+`cf-vorgang.php` fragte dagegen `articles.bookable` ab und zeigte deshalb bei direkt buchbaren
+Fahrzeugen „Deine Antwort fehlt noch". Bei jeder Frage „ist das direkt buchbar?" gehoert diese
+Subquery hin. (Stand 20.08.2026: 309 Zeilen in `article_locations` mit `bookable = 1 AND
+visible = 1`.)
+
+## Herkunft („Quelle") kippt beim Umstellen Anfrage → Buchung (20.08.2026)
+
+`origin` im `BookingController`: `online = 1` → online, sonst `createdBy` → partner bzw.
+administrative, sonst `type === 1` → online, andernfalls **unknown**. Eine im Backend von
+Anfrage auf Buchung umgestellte Buchung hat weder das Flag noch `createdBy` — sie fiel damit
+auf „unbekannt" und verzerrte die Herkunfts-Statistik. Seit dem 20.08.2026 zieht die Regel
+zusaetzlich `meta.provisorilyOrigin === 'customer'` heran (das wird bei jeder Website-Anfrage
+gesetzt) und liefert wieder `online`. Wirkt rueckwirkend, ohne Datenmigration.
 
 ## Der Hinweis „Abweichung von Preisliste" und die Preis-Uebernahme (20.08.2026)
 

@@ -201,3 +201,13 @@ PowerShell-Einzeiler verlieren `$`-Variablen → `.ps1` schreiben und mit
 CRLF-Warnungen → `core.autocrlf false`. Die SSH-Meldung „not using a post-quantum key exchange"
 ist Rauschen. **Kein Python auf dem Rechner** (nur Store-Aliase), Node ist echt da.
 Der REST-Weg oben umgeht diese Fallen alle — deshalb ist er der Standard.
+
+### Azure-Weboberfläche (allerletzter Ausweg, wenn auch git nicht geht)
+
+- **Der Web-Upload nimmt zwar mehrere Dateien, legt sie aber NUR flach in den aktuellen Ordner**
+  (`webkitdirectory=false`) — Ordnerstruktur geht damit nicht. Verschachtelte Quellbaum-Dateien
+  kommen so nie sauber ins Repo; dafür bleibt nur der git-Push oder ein hochgeladenes
+  `quellbaum.zip`, das jemand anschließend entpackt und pusht.
+- **Der Web-Editor (Monaco) ist nicht skriptbar:** `window.monaco` ist von außen nicht erreichbar,
+  und Tipp-Eingaben zerschießen JSON/Markdown durch die Auto-Klammern. Deshalb nie Datei-Inhalte
+  über den Web-Editor anlegen oder ändern — nur `file_upload` mit den exakten Bytes.
