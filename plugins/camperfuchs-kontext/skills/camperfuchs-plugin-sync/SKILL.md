@@ -175,6 +175,34 @@ Versionsnummer, Changelog-Eintrag und Bjoerns Installations-Klick.
 
 Lokal dasselbe pruefen: `python3 ci/plugin_pack.py --check` (Exit 1 bei Abweichung) bzw. `--write`.
 
+### ⚠️ „Die Pipeline hat nicht ausgeloest" ist fast immer eine Fehldiagnose (09.09.2026, zweimal)
+
+Definition 29 laeuft im **Agent-Pool 10 mit genau EINEM online Agent**, der auch alle
+staging-/prod-Deploys und PR-Builds faehrt. Laeuft gerade ein Deploy, wartet der Plugin-Build
+in der Warteschlange — am 09.09. lagen zwischen Push und Build-Start **3,5 Minuten**
+(gequeued 16:27:27, gestartet 16:30:56, fertig 16:31:16), weil `prod-build-and-deploy` den
+Agent hielt. Dazu kommt: **`builds?definitions=29` laggt** und zeigt einen frischen Build oft
+noch gar nicht.
+
+Beides zusammen hat an einem Tag ZWEI Sessions (A4 bei v0.56.0, A9 bei v0.57.0) zu dem Schluss
+gebracht, die Pipeline sei ausgefallen — beide haben das Paket von Hand gebaut und mit einem
+irrefuehrenden Commit-Kommentar gepusht. Schaden entsteht dabei keiner (der Bau ist
+deterministisch, die Bytes sind identisch), aber die Historie wird unwahr und es kostet Zeit.
+
+**Regel vor dem Schluss „Pipeline laeuft nicht":**
+
+```bash
+# ungefilterte Liste nehmen, NICHT definitions=29
+curl -s -u ":$PAT" "https://dev.azure.com/camperfuchs/camperfuchs/_apis/build/builds?\$top=12&api-version=7.0"
+# und sehen, ob der Agent gerade belegt ist
+curl -s -u ":$PAT" "https://dev.azure.com/camperfuchs/_apis/distributedtask/pools/10/jobrequests?api-version=7.0"
+```
+
+Erst wenn nach **10 Minuten** kein Build mit dem eigenen `sourceVersion` auftaucht und der Agent
+frei ist, von Hand bauen — und den Commit dann ehrlich betiteln
+(„Paket manuell gebaut, Pipeline-Build blieb aus"), nicht „Pipeline hat nicht ausgeloest".
+Details zum Agent-Stau: Skill `camperfuchs-build-agent-stau`.
+
 ## Fallen
 
 - **`while read` + letzte Zeile ohne Zeilenumbruch** → Datei fehlt im Baum → Skill verschwindet

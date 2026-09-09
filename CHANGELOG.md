@@ -9,6 +9,16 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.58.0 (2026-09-09)
+
+### camperfuchs-plugin-sync
+- **„Die Pipeline hat nicht ausgeloest" ist fast immer eine Fehldiagnose.** Definition 29 teilt
+  sich den EINEN Build-Agent mit allen Deploys; am 09.09. lagen 3,5 Minuten zwischen Push und
+  Build-Start, weil ein prod-Deploy lief. Zusammen mit dem bekannten Lag von
+  `builds?definitions=29` hat das an einem Tag zwei Sessions dazu gebracht, das Paket unnoetig
+  von Hand zu bauen. Neue Regel im Kapitel zur Pipeline: ungefilterte Build-Liste plus
+  Agent-Warteschlange pruefen, 10 Minuten Geduld, und den Commit ehrlich betiteln.
+
 ## v0.57.0 (2026-09-09)
 
 ### camperfuchs-kontaktfreigabe
