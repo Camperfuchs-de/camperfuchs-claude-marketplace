@@ -9,6 +9,17 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.56.0 (2026-09-09)
+
+### camperfuchs-alternativ-angebot
+- **Nach Anbieter streuen.** Fahrzeuge derselben Station teilen sich exakt dieselben Koordinaten;
+  eine Stations-ID gibt die oeffentliche Suche nicht her. Ohne Streuung stammen die Vorschlaege
+  regelmaessig alle von einem Anbieter - Stichprobe ueber sechs Orte: in fuenf Faellen drei
+  Vorschlaege vom selben Vermieter, in Berlin dreimal book-a-camper (sechs Fahrzeuge mit
+  Stadtteilnamen, alle Station 3981). Sagt der ab, ist die ganze Auswahl weg.
+- Neue Grundregel plus Rezept in Schritt 3b. Die automatische Absage-Mail
+  (`suchAlternativen()` in `cf-decmail.php`) streut seit dem 09.09.2026 selbst.
+
 ## v0.55.0 (2026-09-03)
 
 - **camperfuchs-legacy-backend**: Wissen aus der doppelt gefuehrten Konto-Fassung uebernommen —

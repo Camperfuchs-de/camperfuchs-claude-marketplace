@@ -27,6 +27,9 @@ metadata:
 - **Personenzahl ist Pflicht, bevor irgendein Fahrzeug vorgeschlagen wird.** Sie steht im Feld
   `Bemerkung` der Formular-Mail, Format `Anzahl Erwachsene: 2 | Anzahl Kinder: 1`. Erst ziehen,
   dann filtern. Nie nach Bauart und Entfernung allein auswaehlen (siehe Falle unten).
+- **Nie mehrere Fahrzeuge desselben Anbieters vorschlagen.** Fahrzeuge einer Station teilen
+  sich dieselben Koordinaten - drei Karten von einem Vermieter sind EINE Absage-Chance, nicht
+  drei (Schritt 3b).
 - **Card-Design ist das Standardlayout** (Schritt 5), nicht die Signatur-Vorlage.
 - **IMMER nach Flexibilitaet fragen.** Am Ende jeder Alternativ-Mail fragen, ob der Reisezeitraum
   flexibel ist, besonders wenn die Alternativen den Wunschzeitraum nicht voll abdecken.
@@ -97,6 +100,21 @@ Trefferzahl unterscheidet sich dadurch stark (Beispiel: 80 Treffer ab Ulm vs. 16
 
 Vorauswahl: naechstgelegen, im Wunschzeitraum frei, moeglichst `onlineBookable:true`. Bei
 `onlineBookable:false` (= nur Anfrage) verhalten anbieten, zuerst den Vermieter bestaetigen lassen.
+
+**Nach Anbieter streuen - mehrere Fahrzeuge einer Station sind keine Auswahl.** Die oeffentliche
+Suche liefert aus Datenschutzgruenden keine Stations-ID, aber Fahrzeuge derselben Station teilen
+sich exakt dieselben `latitude`/`longitude`. Daraus einen Anbieter-Schluessel bilden (5 Nachkomma-
+stellen genuegen) und je Anbieter hoechstens ein Fahrzeug anbieten; erst danach mit dem Rest
+auffuellen, damit kein Vorschlag verloren geht.
+
+Belegt am 09.09.2026: In Berlin tragen sechs Fahrzeuge Stadtteilnamen ("Reinickendorf",
+"Prenzlauer Berg", "Lichtenberg", "Treptow", "Steglitz", "Friedrichshain") und gehoeren ALLE der
+Station 3981 (info@book-a-camper.de). Eine Stichprobe ueber sechs Orte ergab in fuenf Faellen
+drei Vorschlaege vom selben Anbieter - in Berlin dreimal book-a-camper. Sagt der ab, ist die
+ganze Auswahl weg.
+
+Die automatische Absage-Mail (`suchAlternativen()` in `cf-decmail.php`) streut seit dem
+09.09.2026 selbst. Fuer von Hand gebaute Angebote gilt dieselbe Regel.
 
 ### 3c. Kalender-Gegencheck beim absagenden Vermieter
 
