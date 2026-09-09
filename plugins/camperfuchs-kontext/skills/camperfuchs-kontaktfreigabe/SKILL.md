@@ -63,6 +63,11 @@ tragen `via=` (`id` | `nr` | `mieter+zusage` | `mieter+neuester`), `cand=`, `mai
 aus `articles.short_name`, sonst der SEO-Titel hinter dem ersten `": "`, plus Kennzeichen.
 Backup der Vorversion: `cf-contact-release.php.bak-mailgun-20260801`.
 
+Seit 09.09.2026 traegt die Mail zusaetzlich die Mailgun-Variable `cf_b` (8. Argument von
+`MailHelper::send`, `array('cf_b' => (int) $row['id'])`). Damit steht die Vorgangs-ID in
+`mail_evt.cfb` und jedes Zustell-Ereignis ist dem Vorgang exakt zugeordnet — vorher hing es
+nur an der Empfaengeradresse.
+
 ## Waechter cf-freigabe-watch.php (seit 01.08.2026)
 
 `/usr/local/cf/cf-freigabe-watch.php`, Cron taeglich 9:45 (`/etc/cron.d/cf-freigabe-watch`),
@@ -75,9 +80,12 @@ b.dunker:
   Ohne Geld wird bewusst NICHT gemeldet - dann ist das Warten richtig. Je Treffer ein Button auf den
   **Make-Hook** (Zwei-Stufen-Bestaetigung), damit **kein Schluessel in der Mail steht**.
 - **Block B "Mail nicht zugestellt":** Freigaben der letzten 14 Tage gegen den Worker
-  `cf-mailstatus` (`/status?recipient=`, Auth = selbst signiertes JWT fuer uid 1006). Kein
-  `delivered` seit der Freigabe oder ein `permanent_fail` -> Meldung. Antwortet der Worker nicht,
-  wird NICHTS gemeldet (eine Stoerung darf keinen Fehlalarm ausloesen).
+  `cf-mailstatus`. **Seit 09.09.2026 ueber `/evt-peek?rec=<adresse>&since=<ts>`** (Auth
+  `X-Comm-Key`, Schluessel `/usr/local/cf/cf-comm.key`) — der liest `mail_evt` und haelt jedes
+  Ereignis einzeln. `/status?recipient=` (JWT fuer uid 1006) bleibt nur noch Rueckfallebene, falls
+  `/evt-peek` keine Auskunft gibt. Kein `delivered` seit der Freigabe oder ein `permanent_fail`
+  -> Meldung. Antwortet der Worker gar nicht, wird NICHTS gemeldet (eine Stoerung darf keinen
+  Fehlalarm ausloesen).
 
 ⚠️ **Block B prueft `meta.cfContactMailTo`, NICHT `stations.email`.** Im ersten Anlauf nahm er die
 Stationsadresse an und meldete sofort zwei Vorgaenge als "nicht zugestellt", bei denen die Mail nie
@@ -133,6 +141,20 @@ misst nichts. Einen Nicht-Admin-Nutzer der Station aus `user_stations` nehmen.
 - **Perf-Schnellpfade umgehen die Maskierung.** Wer im Backend einen neuen Lesepfad baut, der das
   JSON von Hand zusammensetzt statt den Jsoner zu nutzen, liefert unmaskiert aus (so passiert in
   `cfLeanBookingList`). Bei jedem neuen Lesepfad `cfMaskContact` pruefen.
+- ⚠️ **`/status` verliert Zustell-Ereignisse: `mail_rec` dedupliziert 15 Minuten.** `recMerge`
+  im Worker verwirft ein Ereignis, wenn zum selben Empfaenger schon eines desselben Typs binnen
+  `DEDUPE_S` (900 s) vorliegt. Beim Buchungsabschluss gehen "Zahlung eingegangen" und die
+  Kontaktdaten-Mail in DERSELBEN Sekunde raus — eine der beiden fiel dort immer heraus. Am
+  08.09.2026 meldete Block B deshalb Vorgang 1V0RGT als "nicht zugestellt", obwohl Mailgun
+  `250 2.1.5 OK delivered` protokolliert hatte und der Vermieter die Mail sogar geoeffnet hatte.
+  Fuer die Frage "ist DIESE eine Mail angekommen?" nie `/status` nehmen, sondern `/evt-peek`
+  (liest `mail_evt`, liefert Betreff und Message-ID mit).
+- ⚠️ **Ein zweiter Aufruf des Endpoints verschob frueher die Freigabezeit.** Bis 09.09.2026 setzte
+  JEDER Aufruf `cfContactReleased = jetzt`, auch bei `already=true` (Nachversand, abweichender
+  Empfaenger per `to=`, Test). Der Waechter sucht Zustell-Ereignisse ab genau diesem Zeitpunkt —
+  also ab einem Moment, zu dem keine Mail mehr lief — und meldete prompt "nicht zugestellt".
+  Seitdem bleibt die Erstfreigabe stehen, Wiederholungen landen in `cfContactReleasedAgainAt` /
+  `cfContactReleasedAgainBy`. Wer mit einer aelteren Fassung testet, baut sich den Fehlalarm selbst.
 - **srv2-Aenderungen sind nicht in Azure-master** — Live-Datei ziehen, Backup, `php -l`.
   Zugangsweg siehe Skill `camperfuchs-legacy-srv2-mail`.
 

@@ -9,6 +9,21 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.57.0 (2026-09-09)
+
+### camperfuchs-kontaktfreigabe
+- **Waechter Block B fragt jetzt `/evt-peek`, nicht mehr `/status`.** `/status` liest `mail_rec`,
+  und das fasst gleichartige Ereignisse derselben Adresse binnen 15 Minuten (`DEDUPE_S`) zu einem
+  zusammen. Beim Buchungsabschluss gehen Zahlungs- und Kontaktdaten-Mail in derselben Sekunde
+  raus — eine der beiden fehlte dort immer. Am 08.09. meldete der Waechter Vorgang 1V0RGT als
+  "nicht zugestellt", obwohl Mailgun `250 OK delivered` hatte. `/evt-peek` liest `mail_evt` und
+  haelt jedes Ereignis einzeln; dafuer nimmt es seit 09.09. auch `rec=` + `since=`.
+- **Kontaktdaten-Mail traegt `cf_b`**, damit `mail_evt.cfb` die Vorgangs-ID fuehrt und die
+  Zuordnung nicht mehr nur ueber die Empfaengeradresse laeuft.
+- **Erstfreigabe-Zeitpunkt bleibt stehen.** Ein zweiter Endpoint-Aufruf setzt `cfContactReleased`
+  nicht mehr neu (sonst verschiebt jeder Nachversand die Pruefbasis des Waechters), sondern
+  vermerkt `cfContactReleasedAgainAt` / `...AgainBy`.
+
 ## v0.56.0 (2026-09-09)
 
 ### camperfuchs-alternativ-angebot
