@@ -35,6 +35,20 @@ www verifiziert". Erprobt am Ort-Hinweis (WI #252, 08.06.), am Such-Leerzustand-
 - **WIR = b.dunker.** PRs/Promotes unter b.dunker sind unsere eigenen — bewusst
   mit-deployen. Nur ein fremder b.sultanov(Bahti)-Commit im staging→prod-Diff ist
   vor prod zu klären. (Im Commits-Tab des Promote-PRs prüfen.)
+- **`deploy-kette` SCHON vor dem main-PR sperren, nicht erst beim Promote** (09.09.2026
+  teuer gelernt). Solange ein eigener Zwischenstand in `main` liegt und die Kette offen
+  ist, nimmt die naechste b.dunker-Session ihn beim naechsten staging→prod mit — die
+  Regel eine Zeile hoeher gilt aus DEREN Sicht und ist deshalb kein Schutz. An dem Tag
+  ging ein Knopf live, den Bjoern eine Minute vorher abgelehnt hatte, und musste per
+  Korrektur-Kette (PR 1966→1967→1968) wieder von prod genommen werden. Also: Lock auf
+  `deploy-kette` setzen, BEVOR der main-PR aufgeht, und erst nach dem prod-Check
+  freigeben. Ist die Kette belegt: eigenen Stand auf der Tafel ansagen („liegt in main,
+  noch NICHT fuer prod freigegeben") und die haltende Session bitten, main→staging
+  mitzunehmen — sonst promotet sie an deinem Zwischenstand vorbei.
+- **Ein Feature, das Bjoern noch nicht gesehen hat, ist kein prod-Kandidat.** Steht es
+  auf staging und kommt seine Rueckmeldung („den Knopf brauchen wir nicht"), gehoert die
+  Korrektur VOR den prod-Promote — nicht hinterher. Die Kette laeuft schneller, als eine
+  Rueckmeldung eingearbeitet ist.
 
 ## Schritt 0 — Die richtige Komponente finden (häufigste Falle!)
 Nicht raten, wo ein Element lebt. Per sichtbarem Text/Placeholder greppen:

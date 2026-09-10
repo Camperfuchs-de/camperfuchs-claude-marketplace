@@ -9,6 +9,18 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.59.0 (2026-09-10)
+
+### camperfuchs-frontend-feature-shippen
+- **Zwei neue goldene Regeln aus dem Filter-Chip-Vorfall vom 09.09.** (1) `deploy-kette`
+  wird schon VOR dem main-PR gesperrt, nicht erst beim Promote — ein Zwischenstand in
+  `main` wird sonst von der naechsten b.dunker-Session nach prod mitgenommen, und
+  „WIR = b.dunker, bewusst mit-deployen" schuetzt genau davor nicht. An dem Tag ging ein
+  gerade abgelehnter Knopf live und musste per Korrektur-Kette (1966→1967→1968) von prod
+  zurueckgeholt werden. (2) Ein Feature, das Bjoern noch nicht gesehen hat, ist kein
+  prod-Kandidat: seine Rueckmeldung gehoert VOR den Promote, weil die Kette schneller
+  laeuft als die Einarbeitung.
+
 ## v0.58.0 (2026-09-09)
 
 ### camperfuchs-plugin-sync
