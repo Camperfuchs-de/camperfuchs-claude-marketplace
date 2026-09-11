@@ -9,6 +9,23 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.61.0 (2026-09-11)
+
+**Freigabe-Tore: Doppel-Läufe erkennen, nie ein altes Tor freigeben.**
+
+`camperfuchs-frontend-feature-shippen` hat einen neuen Abschnitt. Anlass: Am 11.09.2026
+standen fünf Deploy-Läufe (5184, 5189, 5213, 5217, 5223) bis zu 32 h am Freigabe-Tor. Alle
+waren Doppel-Läufe von Commits, die ein zweiter Lauf längst ausgerollt hatte. Ein Klick auf
+eines dieser Tore hätte staging bzw. prod um ein bis zwei Tage zurückgesetzt.
+
+- Check vor jedem Approve am Tor: wartet dort der aktuelle HEAD des Ziel-Branches, gibt es
+  schon einen neueren erfolgreichen Lauf? Sonst abbrechen statt freigeben.
+- Vor manuellem Queue/Rerun prüfen, ob auf dem Commit schon ein Lauf wartet.
+- Nach jedem Release muss die Liste offener Freigaben leer sein.
+- Cowork blockiert Self-Approval eigener PRs und das Abbrechen von Pipelines: Björn bekommt
+  die fertigen Links plus den Namen des Knopfs.
+- Schritt 6 (prod-Gate) verweist auf den Check.
+
 ## v0.60.0 (2026-09-11)
 
 **Die Cloud-Sandbox hat kein Egress mehr — alle Rezepte laufen über den PC.**

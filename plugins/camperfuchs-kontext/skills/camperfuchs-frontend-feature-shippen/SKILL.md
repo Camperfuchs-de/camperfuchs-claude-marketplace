@@ -278,10 +278,44 @@ https://dev.azure.com/camperfuchs/camperfuchs/_git/camperfuchs/pullrequestcreate
   Delete source aus.
 - Merge triggert Pipeline 13 `prod-build-and-deploy`. **Env-Gate „prod" freigeben**
   (Pipelines → Runs → den Run am prod-Commit → Stage „Deploy to Prod" → Approve).
+  **Vorher Doppel-Lauf-Check** (Abschnitt unten): wartet am Tor wirklich der aktuelle
+  prod-HEAD? Ein altes Tor freigeben = prod zurückrollen.
   Im skaffold-Log das geänderte Image prüfen: `succeeded` ODER `Found Remotely` am
   prod-SHA (kein `canceled`).
 - Live-Beleg auf `https://www.camperfuchs.de/<pfad>?cb=<n>` (ohne Auth): per JS
   auf sichtbaren Text bzw. per CSS-Bundle-Fingerprint (wie Schritt 5).
+
+## Freigabe-Tore: Doppel-Läufe erkennen, nie ein altes Tor freigeben (11.09.2026)
+
+Ein Freigabe-Tor zeigt nicht, WELCHER Stand dahinter wartet. Wer das Tor eines alten
+Laufs freigibt, rollt staging bzw. prod auf dessen Stand zurück.
+
+**Der Fall:** Am 11.09.2026 standen fünf Läufe bis zu 32 h am Tor (5184/5213/5223 staging,
+5189/5217 prod). Alles Doppel-Läufe: derselbe Commit war von einem zweiten Lauf längst
+erfolgreich deployt. Entstehung: der verzögerte Auto-Trigger (siehe „Zwei Zeit-Fallen")
+plus ein von Hand angestoßener Lauf. Björn hat alle fünf abgebrochen, verloren ging nichts.
+
+**Check vor jedem Approve am Tor:**
+```
+GET …/_apis/build/builds/<runId>?api-version=7.0                 -> sourceVersion
+GET …/_apis/git/repositories/camperfuchs/refs?filter=heads/prod  -> objectId (HEAD)
+GET …/_apis/build/builds?definitions=13&$top=5&api-version=7.0    # staging = 12
+GET …/_apis/pipelines/approvals?state=pending&api-version=7.1-preview.1
+```
+Lokal: `git merge-base --is-ancestor <sourceVersion> origin/prod` → Exit 0 = schon enthalten.
+
+- Freigeben nur, wenn `sourceVersion` == HEAD des Ziel-Branches und kein neuerer Lauf
+  derselben Pipeline erfolgreich war.
+- Sonst **Doppel-Lauf → abbrechen statt freigeben**, vorher auf der Tafel warnen.
+- Vor jedem manuellen Queue/Rerun prüfen, ob auf dem Commit schon ein Lauf wartet
+  (`statusFilter=inProgress,notStarted`).
+- Nach dem Release muss `approvals?state=pending` leer sein.
+
+**Wer klickt:** Aus Cowork blockiert der Sicherheitsfilter seit 11.09.2026 das Approve
+EIGENER PRs („Self-Approval") und das Abbrechen laufender Pipelines („Interfere With
+Workloads"), auch mit Björns OK. Dann Björn die fertigen Links schicken
+(`…/_build/results?buildId=<id>`, PR-Link) und den Knopf nennen: „Approve",
+„Set auto-complete (Squash/Rebase)" oder „Cancel". Nicht umgehen.
 
 ## Autonom live schalten per Wächter (Scheduled Task) — empfohlen bei langen Builds
 pr-build + je Deploy dauern ~15–18 Min → nicht in der Session abpollen (verbrennt
