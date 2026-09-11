@@ -53,3 +53,46 @@ steps:
       echo "Auch nach drei Anlaeufen kein Push moeglich - main aendert sich zu schnell." >&2
       exit 1
     displayName: 'Paket zurueckcommitten, falls veraltet'
+
+  # 11.09.2026 (A1): GitHub-Spiegel fuer die automatische Plugin-Verteilung.
+  # Claude (Anpassen > Plugins > Marketplace hinzufuegen) synchronisiert Marktplaetze nur aus
+  # GitHub bzw. oeffentlichen Git-URLs - dieses Azure-Repo ist privat und dort nicht lesbar.
+  # Deshalb geht jeder Stand von main hier als Pull Request nach
+  # github.com/Camperfuchs-de/camperfuchs-claude-marketplace und wird sofort gemergt
+  # (Merge-Commit, damit die Historie mit Azure vergleichbar bleibt). Ein gemergter PR mit
+  # Versionssprung ist genau das, worauf der Claude-Sync reagiert; ein direkter Push nicht.
+  # Ohne Pipeline-Variable GITHUB_TOKEN (Secret, fine-grained: Contents + Pull requests
+  # read/write, nur dieses Repo) wird der Schritt uebersprungen - der Build bleibt gruen.
+  - script: |
+      set -e
+      case "${GH_TOKEN:-}" in ""|'$('*) echo "Kein GITHUB_TOKEN hinterlegt - GitHub-Spiegel uebersprungen."; exit 0;; esac
+      REPO="Camperfuchs-de/camperfuchs-claude-marketplace"
+      API="https://api.github.com/repos/$REPO"
+      H1="Authorization: Bearer $GH_TOKEN"; H2="Accept: application/vnd.github+json"
+      git fetch -q origin main
+      SHA=$(git rev-parse FETCH_HEAD); KURZ=$(git rev-parse --short FETCH_HEAD)
+      VER=$(git show FETCH_HEAD:plugins/camperfuchs-kontext/.claude-plugin/plugin.json | python3 -c 'import json,sys;print(json.load(sys.stdin)["version"])')
+      ZIEL="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+      # Erster Lauf: leeres Repo bekommt main direkt
+      if ! git ls-remote --exit-code --heads "$ZIEL" main >/dev/null 2>&1; then
+        git push -q "$ZIEL" "$SHA:refs/heads/main"
+        echo "GitHub-Spiegel angelegt: main = $KURZ (v$VER)"; exit 0
+      fi
+      ZWEIG="sync/v$VER-$KURZ"
+      git push -q -f "$ZIEL" "$SHA:refs/heads/$ZWEIG"
+      BODY=$(python3 -c 'import json,sys;print(json.dumps({"title":"Plugin-Sync v"+sys.argv[1]+" ("+sys.argv[2]+")","head":sys.argv[3],"base":"main","body":"Automatisch aus Azure DevOps camperfuchs-claude-marketplace, main "+sys.argv[2]+"."}))' "$VER" "$KURZ" "$ZWEIG")
+      ANTW=$(curl -s -X POST -H "$H1" -H "$H2" "$API/pulls" -d "$BODY")
+      NR=$(printf '%s' "$ANTW" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("number",""))')
+      if [ -z "$NR" ]; then
+        printf '%s' "$ANTW" | python3 -c 'import json,sys;d=json.load(sys.stdin);print("Kein PR:",d.get("message"),[e.get("message") for e in d.get("errors",[])])'
+        curl -s -X DELETE -H "$H1" -H "$H2" "$API/git/refs/heads/$ZWEIG" >/dev/null || true
+        echo "Vermutlich schon aktuell - nichts zu spiegeln."; exit 0
+      fi
+      sleep 3
+      MERGE=$(curl -s -X PUT -H "$H1" -H "$H2" "$API/pulls/$NR/merge" -d '{"merge_method":"merge"}')
+      printf '%s' "$MERGE" | python3 -c 'import json,sys;d=json.load(sys.stdin);print("Merge:",d.get("merged"),d.get("message"));sys.exit(0 if d.get("merged") else 1)'
+      curl -s -X DELETE -H "$H1" -H "$H2" "$API/git/refs/heads/$ZWEIG" >/dev/null || true
+      echo "GitHub-Spiegel aktuell: v$VER ($KURZ), PR #$NR gemergt."
+    displayName: 'GitHub-Spiegel fuer Claude-Marktplatz (nur mit GITHUB_TOKEN)'
+    env:
+      GH_TOKEN: $(GITHUB_TOKEN)
