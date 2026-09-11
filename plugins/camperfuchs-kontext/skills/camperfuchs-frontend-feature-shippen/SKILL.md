@@ -17,6 +17,25 @@ description: >-
 
 # Camperfuchs: Frontend-Feature shippen (Idee → live)
 
+> ⚠️ **Seit 11.09.2026 hat die Cloud-Sandbox kein Egress mehr.** `dev.azure.com`,
+> `www.camperfuchs.de`, `tafel.camperfuchs.de`, `api.eu.mailgun.net`, `api.cloudflare.com`
+> und `eu1.make.com` antworten dort mit `connect_rejected` — das liest sich wie ein
+> Serverfehler, ist aber die Egress-Policy. Erlaubt sind nur noch npm, pypi, github.com und
+> api.anthropic.com. **Jedes curl-/SSH-/REST-Rezept unten läuft deshalb über den PC:**
+> Desktop Commander, Skript in eine `.ps1` schreiben und per
+> `powershell -NoProfile -ExecutionPolicy Bypass -File …` starten
+> (`Invoke-RestMethod` / `Invoke-WebRequest` / das Git-ssh unter
+> `C:\Program Files\Git\usr\bin\ssh.exe`).
+>
+> ⚠️ **Und die .ps1-Datei braucht ein BOM oder reines ASCII** — PowerShell 5.1 liest eine
+> UTF-8-Datei ohne BOM als Windows-1252, dabei werden Umlaute und Sonderzeichen doppelt
+> kodiert. Längere Texte mit Sonderzeichen deshalb nicht als Literal ins Skript schreiben,
+> sondern in eine eigene Datei legen und mit
+> `[System.IO.File]::ReadAllText($p, [Text.Encoding]::UTF8)` einlesen. Außerdem frisst
+> PowerShell `$`-Variablen in `-Command`-Einzeilern und bricht bei
+> `$ErrorActionPreference='Stop'` schon an stderr-Rauschen ab.
+
+
 Verkettet das Wissen aus camperfuchs-lokale-dev-umgebung, -azure-devops und
 -deploy zu EINEM erprobten Pfad: von „ich will X in der App" bis „X ist live auf
 www verifiziert". Erprobt am Ort-Hinweis (WI #252, 08.06.), am Such-Leerzustand-Fix

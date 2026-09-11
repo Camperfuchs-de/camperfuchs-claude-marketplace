@@ -9,6 +9,37 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.60.0 (2026-09-11)
+
+**Die Cloud-Sandbox hat kein Egress mehr — alle Rezepte laufen über den PC.**
+
+Seit dem 11.09.2026 lehnt der Egress-Proxy der Claude-Cloud-Sandbox `dev.azure.com`,
+`www.camperfuchs.de`, `tafel.camperfuchs.de`, `api.eu.mailgun.net`, `api.cloudflare.com`
+und `eu1.make.com` ab (`connect_rejected`). Erlaubt bleiben npm, pypi, github.com und
+api.anthropic.com. Die Ablehnung liest sich wie ein Serverfehler und wurde schon einmal
+als solcher fehlgedeutet.
+
+Sechs Skills beschrieben einen Weg, den es so nicht mehr gibt. Sie tragen jetzt oben einen
+Warnblock mit dem Ersatzweg (Desktop Commander, `.ps1` per `-File`, `Invoke-RestMethod` /
+`Invoke-WebRequest` / Git-ssh):
+
+- camperfuchs-frontend-feature-shippen
+- camperfuchs-kalender-sperre
+- camperfuchs-legacy-backend
+- camperfuchs-plugin-sync (dessen eigener Standardweg „browserlos aus der Sandbox" ist betroffen)
+- camperfuchs-verfuegbarkeits-flow
+- camperfuchs-wp-droplet-ops
+
+Dazu die Falle, die beim Bauen dieser Version selbst zugeschlagen hat: **PowerShell 5.1 liest
+eine .ps1 ohne BOM als Windows-1252.** Längere Texte mit Umlauten oder Sonderzeichen gehören
+deshalb nicht als Literal ins Skript, sondern in eine eigene Datei, die per
+`[System.IO.File]::ReadAllText($p, [Text.Encoding]::UTF8)` eingelesen wird. Der erste Anlauf
+hat genau so sechs Skills mit doppelt kodierten Zeichen beschrieben und wurde verworfen.
+
+Inhaltlich sonst unverändert. Details im Projekt-Doc `claude/sandbox-ohne-egress.md`.
+Ob die Sperre bleibt, ist eine Einstellung auf Anthropic-Seite (Admin settings → Capabilities)
+und noch offen — bis dahin ist der PC-Weg der Normalfall.
+
 ## v0.59.0 (2026-09-10)
 
 ### camperfuchs-frontend-feature-shippen

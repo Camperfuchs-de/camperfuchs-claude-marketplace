@@ -5,6 +5,25 @@ description: Betrieb, Änderung und Troubleshooting des Camperfuchs Vermieter-Ve
 
 # Camperfuchs Verfügbarkeits-Flow (Vermieter-Buttons + Tracking)
 
+> ⚠️ **Seit 11.09.2026 hat die Cloud-Sandbox kein Egress mehr.** `dev.azure.com`,
+> `www.camperfuchs.de`, `tafel.camperfuchs.de`, `api.eu.mailgun.net`, `api.cloudflare.com`
+> und `eu1.make.com` antworten dort mit `connect_rejected` — das liest sich wie ein
+> Serverfehler, ist aber die Egress-Policy. Erlaubt sind nur noch npm, pypi, github.com und
+> api.anthropic.com. **Jedes curl-/SSH-/REST-Rezept unten läuft deshalb über den PC:**
+> Desktop Commander, Skript in eine `.ps1` schreiben und per
+> `powershell -NoProfile -ExecutionPolicy Bypass -File …` starten
+> (`Invoke-RestMethod` / `Invoke-WebRequest` / das Git-ssh unter
+> `C:\Program Files\Git\usr\bin\ssh.exe`).
+>
+> ⚠️ **Und die .ps1-Datei braucht ein BOM oder reines ASCII** — PowerShell 5.1 liest eine
+> UTF-8-Datei ohne BOM als Windows-1252, dabei werden Umlaute und Sonderzeichen doppelt
+> kodiert. Längere Texte mit Sonderzeichen deshalb nicht als Literal ins Skript schreiben,
+> sondern in eine eigene Datei legen und mit
+> `[System.IO.File]::ReadAllText($p, [Text.Encoding]::UTF8)` einlesen. Außerdem frisst
+> PowerShell `$`-Variablen in `-Command`-Einzeilern und bricht bei
+> `$ErrorActionPreference='Stop'` schon an stderr-Rauschen ab.
+
+
 > **NEU (14.07.2026) — eigene Skill für "Alternativen anfragen":** Der Button "Freie Alternativen anfragen" in der NEIN-Info-Mail (Modul 5), die Picker-Seite mit freien Fahrzeugen + Filtern (Personen/minBeds, Bauart, Preis, Haustiere, Umkreis), der direkte Anfrage-Versand an den jeweiligen Alt-Vermieter und der Backend-Endpoint `landlord-contact` sind in einem EIGENEN Make-Szenario **6559455** (Hook `m5jc…`) + Backend. Dafür die Skill **`camperfuchs-nein-alternativen-anfragen`** nutzen. Hier (5482694/6030776) geht es um den Grund-Flow (JA/NEIN/Rückfrage, Tracking, Mieter-Entwurf, Vermieter-eigener Picker Modul 20).
 
 > **NEU (15./16.07.2026) — Kontaktdaten-Maskierung bei Anfrage-Fahrzeugen ist LIVE:** Details im Abschnitt „Kontaktdaten-Maskierung" unten. Kurz: maskierte Anfragen kommen als office@-Mail mit Marker-Zeilen an, 5482694 hat dafür Parser M25 + Router M27 mit Route B (M26 = Mail OHNE Telefon/Anrufen/WhatsApp und OHNE mieter= in den Button-URLs), 6030776 holt die Mieter-Mail per Datastore-Fallback. ⚠️ **Seit 29.07.2026 schickt 6030776 die Kontaktdaten NICHT mehr automatisch bei JA** — M60 ist entfernt, die Freigabe ist ein eigener Klick (Szenario 6752917). Siehe Abschnitt „Übergabepunkt“.
