@@ -9,6 +9,7 @@ description: >-
   NEIN-Seite", "Sperre wurde nicht gesetzt", "falsches Fahrzeug gesperrt") wie implizit
   ("Vermieter pflegt seinen Kalender nicht", "gleiches Fahrzeug bekommt immer wieder
   Anfragen", "Fahrzeug ist trotz Sperre noch in der Suche", "Fehlklick rückgängig machen").
+  Direkt buchbare Fahrzeuge sperrt cf-nein-sperre.php seit 11.09.2026 automatisch.
   Enthält System-Landkarte, Auth-Modell, Test-Rezept und die teuer gelernten Fallen.
   NICHT für den JA/NEIN-Grundflow (→ camperfuchs-verfuegbarkeits-flow) oder die
   Alternativen-Anfrage (→ camperfuchs-nein-alternativen-anfragen).
@@ -44,9 +45,15 @@ Folge: dasselbe Fahrzeug bekommt weiter Anfragen für denselben Zeitraum, Kunden
 Leere, Vermieter nerven sich. Der Vermieter ist beim NEIN-Klick ohnehin im Browser — genau
 dort fragen wir nach und schreiben die Sperre.
 
-**Bewusst kein Automatismus:** Ein NEIN heißt nicht zwingend „belegt". Es heißt oft „Fahrzeug
-haben wir nicht mehr", „zu kurze Miete", „Übergabetag geht nicht". Automatisches Sperren bei
-jedem NEIN würde buchbare Zeiträume dichtmachen = direkter Umsatzverlust. Deshalb: Klick.
+**Zwei Regeln, je nach Fahrzeug (Björns Entscheidung 11.09.2026):**
+
+- **Anfrage-Fahrzeug → Klick.** Ein NEIN heißt nicht zwingend „belegt". Es heißt oft „Fahrzeug
+  haben wir nicht mehr", „zu kurze Miete", „Übergabetag geht nicht". Automatisches Sperren
+  würde buchbare Zeiträume dichtmachen = Umsatzverlust. Die Kette fragt bei solchen Fahrzeugen
+  ohnehin jedes Mal den Vermieter.
+- **Direkt buchbares Fahrzeug → automatisch.** Hier ist ein offener Zeitraum nach einem NEIN
+  gefährlicher als eine Sperre zu viel: der Kunde bekommt „direkt buchbar" und kann bezahlen,
+  obwohl das Fahrzeug weg ist. Siehe Abschnitt „Auto-Sperre" unten.
 
 ## System-Landkarte
 
@@ -158,8 +165,49 @@ Deploy = Datei per base64 rüberschieben, `php -l`, `php app/console cache:clear
 `debug:router | grep automation`. Repo separat per PR nachziehen — `/home/gaz/rent` hängt auf
 detached HEAD und weicht ohnehin vom Repo ab.
 
+## Auto-Sperre bei direkt buchbaren Fahrzeugen (seit 11.09.2026)
+
+**Anlass #3OBEWL:** Feith (Station 3964, Chausson 640, Artikel VDP14IQA) hatte 27.09.–07.10.
+schon am 17.07. per NEIN abgesagt (#S6R8RI), aber nicht geklickt. Der Kalender blieb frei, das
+Fahrzeug direkt buchbar. Eine Telefon-Anfrage am 11.09. lief deshalb so: 13:30 „Gute Nachricht:
+direkt buchbar" an den Kunden, 13:39 Vermieter meldet belegt, 13:44 „leider belegt, hier sind
+Alternativen". Ein Online-Kunde hätte in der Zwischenzeit bezahlen können.
+
+**Job:** `/usr/local/cf/cf-nein-sperre.php` auf srv2, Cron `/etc/cron.d/cf-nein-sperre` alle
+10 Minuten, Log `/var/log/cf-nein-sperre.log`.
+
+- Greift nur, wenn `article_locations.bookable = 1 AND visible = 1` am **Standort der Anfrage**
+  (nicht `articles.bookable` — das ist nicht die Wahrheit).
+- NEIN erkannt über `cf_vorgang.status = 'nein'` ODER `bookings.meta` mit
+  `"vermieterDecision":"nein"` — egal über welchen Kanal (Buttons, WhatsApp, Info-Mail).
+- Nur Entscheidungen ab dem Stichtag 11.09.2026 14:00 (`$STICHTAG`). Ältere NEINs haben beim
+  ersten Lauf nur den Merker bekommen und werden nie angefasst.
+- Gesperrt wird ab `max(Abholung, jetzt)` bis Rückgabe, über `POST /api/automation/block`.
+  Ist der Zeitraum schon komplett durch type 3/5/6 belegt, nur Merker.
+- Merker `cf_followup.kind = 'neinsperre'` → jede Anfrage genau einmal. Scheitert der
+  Block-Aufruf, kein Merker, nächster Lauf versucht es wieder.
+- Jede Sperre geht als Mail an Björn (`[Sperre auto #NR] …`) mit article/from/to für den
+  Rückweg. Kappe 10 Sperren je Lauf.
+- Von Hand: `php cf-nein-sperre.php` (trocken), `--live`, `--id=<bookingId>` (ohne Stichtag,
+  um einen Altfall doch zu sperren). Notaus: `#` vor die Cron-Zeile.
+
+**Offene NEIN-Zeiträume ohne Sperre finden** (für direkt buchbare Fahrzeuge): Anfragen mit
+NEIN (Bedingung wie oben), `date_to > NOW()`, und je Anfrage prüfen, ob type 3/5/6 den
+Zeitraum lückenlos deckt. Am 11.09.2026 übrig: nur Station 3891 (fünf Wochen, iCal aktiv) —
+Björn klärt das selbst, nicht sperren.
+
+**Warnung schon vor der Anfrage:** Die Telefon-Anfrage-Maske (`cf-telanfrage.js` v14) zeigt
+in der Trefferliste „Vermieter hat hier schon abgelehnt" über
+`cf-telnachpflege.php action=hinweise` (Artikel-IDs + Zeitraum → frühere NEINs, auch von
+stornierten Vorgängen).
+
 ## Offen
 
+- **Kein Protokoll für „direkt buchbar".** `article_locations_aud` (Envers) existiert, hat aber
+  **0 Zeilen**: der Legacy-`ArticleController` schreibt an Envers vorbei und setzt `bookable`
+  bei jedem Speichern des Fahrzeugformulars aus dem Häkchen, ohne Rollenprüfung (auch
+  Vermieter selbst). Wer ein Fahrzeug wann auf direkt buchbar gestellt hat, lässt sich
+  deshalb nicht mehr sagen; Apache-Logs reichen 14 Tage.
 - Die WhatsApp-Freitext-Erkennung (Haiku) ist seit 15.07.2026 live → `camperfuchs-verfuegbarkeits-flow`.
 - Kein „Fahrzeug ganz offline nehmen"-Button — bei „haben wir nicht mehr" (Fall ginbie/MEG)
   ist Sperren nur ein Pflaster.

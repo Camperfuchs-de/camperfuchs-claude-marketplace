@@ -9,6 +9,23 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.62.0 (2026-09-11)
+
+**Kalender-Sperre: bei direkt buchbaren Fahrzeugen sperrt ein NEIN jetzt automatisch.**
+
+`camperfuchs-kalender-sperre` kennt jetzt zwei Regeln. Anfrage-Fahrzeuge bleiben beim
+freiwilligen Klick auf der NEIN-Seite. Bei direkt buchbaren Fahrzeugen sperrt
+`cf-nein-sperre.php` (srv2, alle 10 Minuten) den Zeitraum selbst — Björns Entscheidung nach
+#3OBEWL: Feith hatte einen Zeitraum im Juli abgesagt, aber nie gesperrt; ein Kunde bekam
+„direkt buchbar" und 14 Minuten später „leider belegt".
+
+- Nur `article_locations.bookable = 1` am Standort der Anfrage, nur NEINs ab 11.09.2026 14:00,
+  nur Zukunft, jede Anfrage einmal (Merker `neinsperre`), jede Sperre als Mail an Björn.
+- Rezept, um offene NEIN-Zeiträume ohne Sperre zu finden.
+- Hinweis auf die Warnung in der Telefon-Anfrage-Maske („Vermieter hat hier schon abgelehnt").
+- Neu unter „Offen": Änderungen an „direkt buchbar" werden nirgends protokolliert
+  (`article_locations_aud` bleibt leer, der Legacy-ArticleController schreibt an Envers vorbei).
+
 ## v0.61.0 (2026-09-11)
 
 **Freigabe-Tore: Doppel-Läufe erkennen, nie ein altes Tor freigeben.**
