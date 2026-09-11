@@ -9,6 +9,24 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.63.0 (2026-09-11)
+
+**Deploy-Tore per REST, und warum Fahrzeugseiten aus der Suche langsam waren.**
+
+`camperfuchs-frontend-feature-shippen`:
+- Tor-Freigabe per PAT (`PATCH …/pipelines/approvals`, Body als Array) plus Tor-Wächter-Skript,
+  das genau einmal freigibt (ein Lauf, richtiger Branch, richtiger Commit). Erprobt an der
+  prod-Runde 1995+2001+1999+2002 (Lauf 5326).
+- Beschreibung korrigiert: PRs gehen wieder per PAT-REST, nicht mehr „nur per Browser".
+- Stand zum Self-Approval-Filter: am 11.09. nachmittags liefen Approve und Tor-Freigabe mit
+  Björns Go durch. Blockiert er doch: nicht umgehen.
+- landing-pages-Chunks liegen unter `/de/_next/`.
+- Neue Fallen: Query-Parameter an internen Links machen jede Fahrzeugseite zum Cache-MISS
+  (47 % der Aufrufe, LCP p75 3,1 s statt 1,5 s) → Nur-Browser-Werte in den Hash; ein stilles
+  `router.replace` zählt als `$pageview`; vor jedem Tempo-Fix `lcp_detail` (TTFB vs. Bild) ansehen.
+
+`camperfuchs-projekt`: Caching-Abschnitt um Fahrzeugseiten + Query-Parameter ergänzt.
+
 ## v0.62.0 (2026-09-11)
 
 **Kalender-Sperre: bei direkt buchbaren Fahrzeugen sperrt ein NEIN jetzt automatisch.**
