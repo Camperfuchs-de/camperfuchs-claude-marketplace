@@ -9,6 +9,23 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.64.0 (2026-09-11)
+
+**Legacy-Backend: Fahrzeug-Änderungsprotokoll, Kollations-Falle, Kontaktformular-Endpunkt.
+Verfügbarkeits-Flow: Alternative auf der „doch belegt"-Seite.**
+
+- `camperfuchs-legacy-backend`: neues Kapitel `cf_article_log` — wer stellt ein Fahrzeug auf
+  direkt buchbar/online (ArticleController + stündlicher Abgleich, Anzeige im Protokoll).
+  `article_locations_aud` bleibt leer, weil der Legacy-Controller an Envers vorbei schreibt.
+- `camperfuchs-legacy-backend`: MySQL-8-Kollation neuer Tabellen (`utf8mb4_0900_ai_ci`) gegen
+  Altbestand (`utf8mb4_unicode_ci`) — JOIN wirft, im try/catch wird daraus eine stille leere
+  Liste.
+- `camperfuchs-legacy-backend`: `/api/V1/bookings/request` ist der Kontaktformular-Weg ohne
+  Vorgang; echte Anfrage = `POST /api/V1/bookings` bzw. `/group`.
+- `camperfuchs-verfuegbarkeits-flow`: `cf-notfree.php` (direkt buchbar, „doch belegt") bietet
+  jetzt „Hast du stattdessen etwas frei?" an — anderer Zeitraum mit Kalender-Vorschlag oder
+  anderes eigenes Fahrzeug; landet als „Der Vermieter bietet dir an" in der Absage.
+
 ## v0.63.0 (2026-09-11)
 
 **Deploy-Tore per REST, und warum Fahrzeugseiten aus der Suche langsam waren.**

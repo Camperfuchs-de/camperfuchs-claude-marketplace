@@ -313,6 +313,33 @@ Für den umgekehrten Fall: Björn fragt selbst bei einem/mehreren Vermietern an,
 - **⚠️ Gmail-Draft-Gotcha:** Gmail-Compose strippt die CSS-Kurzform `background:` → weiße Schrift wird unsichtbar (Balken/Buttons „verschwinden"). Vorlage ist deshalb tabellenbasiert (`<td bgcolor + background-color>`) — NICHT auf div+background zurückbauen. Gilt für ALLE per create_draft angelegten Card-Mails (Memory `gmail-draft-html-gotcha`).
 - **create_draft braucht ≥1 Empfänger** → beim Entwurf-Anlegen Björns eigene Adresse eintragen, vor Versand tauschen. Signatur-Block anhängen (Memory `email-signatur-und-stil`).
 
+## Direkt buchbar: „doch belegt"-Seite mit Alternative (cf-notfree.php, seit 11.09.2026)
+
+Bei direkt buchbaren Fahrzeugen bekommt der Vermieter keine JA/NEIN-Mail, sondern nur die
+Info von `cf-directbook.php` mit dem Knopf „Zeitraum ist doch belegt" →
+`/backend/cf-notfree.php` (zweistufig, Signatur `notfree|<id>` mit `cf-answer.key`). Stufe 2
+setzt `meta.vermieterDecision='nein'` (via `cf-notfree`), sperrt den Zeitraum und informiert
+Björn; `cf-decmail` schickt dem Kunden die Absage mit Alternativen.
+
+**Seit 11.09.2026 kann der Vermieter dort direkt eine Alternative anbieten** (vorher war die
+Seite nur eine Bestätigung — Anlass #3OBEWL, Feith hätte ab 13.10. gekonnt):
+- **Dasselbe Fahrzeug in einem anderen Zeitraum** — mit Vorschlag „Laut deinem Kalender frei:
+  …" (nächstes freies Fenster gleicher Länge; der angefragte Zeitraum zählt dabei als belegt,
+  weil die Sperre erst in Stufe 2 entsteht).
+- **Ein anderes eigenes Fahrzeug**, das im angefragten Zeitraum frei ist (Auswahlliste,
+  Titel aus `by-landlord`, damit `cf-decmail` das Fahrzeug über `fahrzeugAusText` findet).
+- Gespeichert als `cf_vorgang_event` `kind='nachricht'`, `value='alternative'`, Detail
+  `Fahrzeug: … | Zeitraum: …` — **dasselbe Format wie `cf-entscheidung.php`**, deshalb erscheint
+  es in der Absage als „Der Vermieter bietet dir an". Das Event wird **vor** der Entscheidung
+  geschrieben, sonst kann `cf-decmail` (alle 2 Min) die Absage ohne Angebot verschicken.
+
+Die normale NEIN-Seite der Anfrage-Fahrzeuge (`cf-entscheidung.php`) hat das schon länger:
+Fahrzeug-Picker mit Kalender je Fahrzeug, eigener Zeitraum, Freitext-Fahrzeug.
+
+Test ohne echte Partner: `php cf-testvorgang.php --live --direkt --von=… --bis=…`, Link mit
+`notfree|<id>` signieren, GET/POST per curl gegen `127.0.0.1`, `cf-decmail.php --only=<id>`
+trocken muss „+ Vermieter-Angebot" melden, danach `--weg=<id>` (räumt auch die Sperre weg).
+
 ## Querverweise
 
 - **`camperfuchs-nein-alternativen-anfragen`** — Alt-Vermieter-Picker „Freie Alternativen anfragen" (eigenes Szenario **6559455**, Hook `m5jc…`).

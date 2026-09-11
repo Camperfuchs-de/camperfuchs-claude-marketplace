@@ -587,7 +587,52 @@ Nachvollziehbarkeit selbst herstellen — Backup mit sprechendem Namen unter `/r
 der Tafel, und den md5 der Ausgangsdatei vor dem Ueberschreiben pruefen (Diff-Guard), damit keine
 parallele Session ueberschrieben wird.
 
+## Fahrzeug-Änderungsprotokoll `cf_article_log` (seit 11.09.2026)
+
+Anlass #3OBEWL: niemand konnte sagen, wer ein Fahrzeug auf „direkt buchbar" gestellt hatte.
+Das Envers-Protokoll des Spring-Backends hilft dafür NICHT: `bookings_aud` und
+`booking_positions_aud` sind gefüllt, **`article_locations_aud` existiert, hat aber 0 Zeilen** —
+der Legacy-`ArticleController` schreibt an Envers vorbei, `revinfo` hat keine Nutzerspalte.
+
+- **`ArticleController`** (Helfer `cfArtLogSnap()`/`cfArtLogDiff()`) schreibt vor/nach dem Flush
+  in indexAction POST+DELETE und cfSetVisibilityAction je Änderung eine Zeile: wer (user_id,
+  user_name, user_role, IP aus `CF-Connecting-IP`), `quelle` (`fahrzeugformular` /
+  `sichtbarkeit` / `loeschen`), Fahrzeug, Standort, `feld` (`bookable`, `visible`, `main`,
+  `standort`, `fahrzeug`, `fahrzeug_public|bookable|deleted|station`), `alt`, `neu`.
+  ts = Berlin-Zeit. Fehler bleiben still — das Protokoll darf nie ein Speichern kippen.
+- ⚠️ Das Fahrzeugformular setzt `article_locations.bookable` bei **jedem** Speichern aus dem
+  Häkchen, **ohne Rollenprüfung** — auch Vermieter (ROLE_USER) stellen so auf direkt buchbar.
+- **Sicherheitsnetz** `/usr/local/cf/cf-article-snapshot.php`, stündlich :17: vergleicht
+  `article_locations` mit `cf_article_snap` und trägt Fremdänderungen (Spring, SQL, Skripte) mit
+  `quelle='abgleich'` ein — ohne Nutzer, auf die Stunde genau.
+- **Anzeige:** Backend → Protokoll → „Meine Vorgänge", Art „Fahrzeuge" (`cf-protokoll.php`).
+  Vermieter sehen bei Admin-Änderungen „Camperfuchs-Team".
+- Backup vor dem Patch: `/root/ArticleController.php.bak-a3-aenderungsprotokoll-20260911150333`.
+
+## ⚠️ Kollations-Falle bei neuen cf_-Tabellen (11.09.2026)
+
+MySQL 8 legt neue Tabellen mit **`utf8mb4_0900_ai_ci`** an, die Altbestände haben
+`utf8mb4_unicode_ci` (`articles`) bzw. `utf8mb3_unicode_ci` (`stations`). Ein JOIN auf eine
+Textspalte darüber wirft **„Illegal mix of collations"** — und wenn der Aufrufer das im
+`try/catch` verschluckt (wie `cf-protokoll.php`), bleibt die Liste einfach **leer, ohne jede
+Meldung**. Neue cf_-Tabellen, die mit Alt-Tabellen über Text-IDs gejoint werden, gleich mit
+`DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci` anlegen, oder nachträglich
+`ALTER TABLE … CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`. Joins über
+Integer-IDs (`booking_id`) sind nicht betroffen. Diagnose: dieselbe Query mit
+`PDO::ERRMODE_EXCEPTION` außerhalb des `try` laufen lassen.
+
+## ⚠️ `/api/V1/bookings/request` legt KEINEN Vorgang an (11.09.2026)
+
+Im Spring-Backend ist `POST /api/V1/bookings/request` der alte **Kontaktformular-Weg**
+(`ContactService.processContact`): kein Eintrag in `bookings`, kein Angebots-PDF, keine
+Vermieter-Mail — nur „Es gibt eine neue Buchungsanfrage!" an office@ (Gesamt 0,00 €, ohne
+Vorgangsnummer, ~56 KB statt ~800 KB) und „Deine Kontaktanfrage" an den Kunden. Eine echte
+Anfrage ist `POST /api/V1/bookings` mit `{type:'REQUEST', booking}` (so `request.tsx`) bzw.
+`/api/V1/bookings/group`. Die Telefon-Anfrage-Maske (`cf-telanfrage.js`) lief bis v12 für
+Einzel-Anfragen falsch; seit v14 prüft sie nach dem Absenden selbst, ob Vorgang und PDF da sind.
+
 ## Verwandte Skills
 `camperfuchs-legacy-srv2-mail` (SSH-Zugang, sicherer Edit-Workflow, Mail/DMARC),
 `camperfuchs-azure-devops` / `camperfuchs-deploy` (NEUES Monorepo),
-`camperfuchs-live-daten` (DBs), `camperfuchs-projekt` (Gesamtarchitektur).
+`camperfuchs-live-daten` (DBs), `camperfuchs-projekt` (Gesamtarchitektur),
+`camperfuchs-kalender-sperre` (Auto-Sperre bei NEIN zu direkt buchbaren Fahrzeugen).
