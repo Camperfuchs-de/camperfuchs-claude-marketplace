@@ -57,6 +57,10 @@ ist das Azure-Repo. Veröffentlicht wird per Versionsnummer + Changelog.
   `…\Camperfuchs Tech & Produkt\05_Skills-Automation\camperfuchs-marketplace`.
   Nach dem Veröffentlichen nachziehen.
 - **Bahti:** b.sultanov@camperfuchs.de, installiert per `.plugin`-Datei in Cowork.
+  ⚠️ **Stand 13.09.2026: Bahti macht erstmal nichts.** Von ihm sind vorerst keine Commits zu
+  erwarten, er braucht auch keinen Zugang zum GitHub-Spiegel. Das Plugin wird allein aus Björns
+  Sessions gepflegt, Workflow C ruht. Ihn erst wieder einplanen, wenn Björn es ausdrücklich sagt —
+  nicht von selbst „zur Sicherheit" Zugänge einrichten oder auf seine Änderungen warten.
 - **Tabu:** Keine Tokens/Passwörter ins Plugin. `.secrets/` nie anfassen. `cf-wissen` (private
   Umsatz-/Partner-Interna) gehört NIE hierher.
 
@@ -110,7 +114,11 @@ eine Zeile. Fremde Commits → Workflow C.
 12. **Björn Bescheid:** neue Version + die `.plugin` per `present_files` geben. Er installiert
     mit einem Klick (Einstellungen → Capabilities). Bewusst manuell = Sicherheitsgrenze.
 
-## Workflow C — Bahti-Änderungen einziehen
+## Workflow C — Bahti-Änderungen einziehen (ruht seit 13.09.2026)
+
+> Bahti macht erstmal nichts (siehe Stammdaten). Dieser Workflow ist bis auf Weiteres
+> gegenstandslos. Taucht trotzdem ein fremder Commit auf, ist das ein Grund bei Björn
+> nachzufragen — nicht ihn stillschweigend einzuziehen.
 
 Commits von b.sultanov prüfen (fachlich plausibel, keine Secrets), Björn in 1–2 Sätzen melden,
 dann Workflow B ab Schritt 2 — außer Bahti hat Version+Changelog schon gepflegt, dann nur
@@ -193,6 +201,27 @@ automatisch im ausgelieferten Paket. Von Hand bleibt genau das, was Urteil brauc
 Versionsnummer, Changelog-Eintrag und Bjoerns Installations-Klick.
 
 Lokal dasselbe pruefen: `python3 ci/plugin_pack.py --check` (Exit 1 bei Abweichung) bzw. `--write`.
+
+### GitHub-Spiegel für den Claude-Marktplatz (seit 13.09.2026 scharf)
+
+Dieselbe Pipeline spiegelt `main` zusätzlich nach **`Camperfuchs-de/camperfuchs-claude-marketplace`**
+auf GitHub (privates Repo). Damit lässt sich das Plugin in Claude Code direkt als Marktplatz
+einbinden, statt die `.plugin`-Datei von Hand zu installieren:
+
+```
+/plugin marketplace add Camperfuchs-de/camperfuchs-claude-marketplace
+/plugin install camperfuchs-kontext@camperfuchs-team
+```
+
+Der Spiegel-Schritt läuft nur, wenn die Pipeline-Variable **`GITHUB_TOKEN`** gesetzt ist — fehlt
+sie, wird er stillschweigend übersprungen und die Pipeline bleibt trotzdem grün. Das sah monatelang
+nach „läuft" aus, obwohl nichts bei GitHub ankam. **Wer prüfen will, ob der Spiegel wirklich
+arbeitet, schaut bei GitHub nach, nicht auf die Pipeline-Farbe.**
+
+Der hinterlegte Token (fine-grained, Konto `camperfuchs`, Rechte Contents + Pull requests auf genau
+dieses Repo) **läuft am 13.09.2027 ab**. Danach schlägt der Push fehl; dann neuen Token erzeugen und
+die Pipeline-Variable überschreiben. Die Variable selbst bleibt dauerhaft bestehen. Kopie des Tokens
+liegt unter `.secrets/github-marketplace-token.txt`.
 
 ### ⚠️ „Die Pipeline hat nicht ausgeloest" ist fast immer eine Fehldiagnose (09.09.2026, zweimal)
 

@@ -9,6 +9,18 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.65.0 (2026-09-13)
+
+- `camperfuchs-plugin-sync`: **Bahti macht erstmal nichts** — festgehalten in den Stammdaten und
+  als Ruhevermerk über Workflow C. Von ihm sind vorerst keine Commits zu erwarten, er braucht
+  keinen Zugang zum GitHub-Spiegel, und niemand soll auf seine Änderungen warten oder ihm
+  vorsorglich Zugänge einrichten. Erst wieder einplanen, wenn Björn es ausdrücklich sagt.
+- `camperfuchs-plugin-sync`: Neuer Abschnitt zum **GitHub-Spiegel**, der seit dem 13.09.2026 wirklich
+  läuft. Enthält die beiden `/plugin`-Befehle für Claude Code, den Ablauftermin des Tokens
+  (13.09.2027) und die teuer gelernte Falle: der Spiegel-Schritt wird ohne die Pipeline-Variable
+  `GITHUB_TOKEN` stillschweigend übersprungen — die Pipeline bleibt grün, obwohl bei GitHub nichts
+  ankommt. Prüfen heißt deshalb: bei GitHub nachsehen, nicht auf die Pipeline-Farbe schauen.
+
 ## v0.64.0 (2026-09-11)
 
 **Legacy-Backend: Fahrzeug-Änderungsprotokoll, Kollations-Falle, Kontaktformular-Endpunkt.
