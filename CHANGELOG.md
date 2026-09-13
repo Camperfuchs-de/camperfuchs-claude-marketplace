@@ -9,7 +9,7 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
-## 0.67.0 - 13.09.2026
+## v0.67.0 (2026-09-13)
 
 **camperfuchs-cache-purge - Purge-Disziplin, mit Zahlen belegt**
 
