@@ -113,6 +113,33 @@ eine Zeile. Fremde Commits → Workflow C.
 11. **Lokale Kopie** im Projektordner nachziehen.
 12. **Björn Bescheid:** neue Version + die `.plugin` per `present_files` geben. Er installiert
     mit einem Klick (Einstellungen → Capabilities). Bewusst manuell = Sicherheitsgrenze.
+    **Dazusagen: die alte Version vorher entfernen** — warum, steht gleich unten.
+
+### ⚠️ Cowork ersetzt nicht, es legt daneben (13.09.2026)
+
+Eine neue `.plugin`-Datei zu installieren überschreibt die vorhandene Installation **nicht**.
+Nach dem Einspielen von v0.65.0 lagen zwei Plugin-Ordner nebeneinander:
+
+```
+camperfuchs-kontext       0.64.0   (vom 11.09.)
+camperfuchs-kontext~g2    0.65.0   (neu)
+```
+
+Beide mit 17 Skills, beide mit eigener `meta.json`. Im Skill-Verzeichnis erscheint trotzdem nur
+**ein** Eintrag — und welche Fassung ihn liefert, ist nicht vorhersehbar: die Beschreibungstexte
+wechselten zwischen den beiden Ständen hin und her. Eine Session kann so mit wochenaltem Wissen
+arbeiten, ohne dass irgendetwas nach einem Fehler aussieht.
+
+**Deshalb beim Ausliefern immer dazusagen: in Einstellungen → Capabilities die alte Version
+löschen.** Gegenprobe bei Zweifeln — im gesyncten Plugin-Ordner nachzählen:
+
+```bash
+ls -1 ~/.claude/plugins/synced/*/ | grep camperfuchs-kontext
+# genau EIN Verzeichnis (plus seine .meta.json) ist richtig
+```
+
+Steht dort mehr als eins, ist die alte noch da. Das `~g2`-Suffix im Ordnernamen ist dagegen
+harmlos und bleibt auch nach dem Aufräumen stehen.
 
 ## Workflow C — Bahti-Änderungen einziehen (ruht seit 13.09.2026)
 

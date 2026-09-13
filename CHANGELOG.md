@@ -9,6 +9,17 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.66.0 (2026-09-13)
+
+- `camperfuchs-plugin-sync`: **Cowork ersetzt eine Installation nicht, es legt die neue daneben.**
+  Nach dem Einspielen von v0.65.0 lagen `camperfuchs-kontext` (0.64.0) und
+  `camperfuchs-kontext~g2` (0.65.0) gleichzeitig da, beide mit 17 Skills. Im Skill-Verzeichnis
+  erscheint nur ein Eintrag, und welche Fassung ihn liefert, ist nicht vorhersehbar — eine Session
+  kann mit veraltetem Wissen arbeiten, ohne dass etwas nach einem Fehler aussieht. Neuer Abschnitt
+  mit der Regel (alte Version in Einstellungen → Capabilities löschen), dem Zähl-Befehl zur
+  Gegenprobe und dem Hinweis, dass das `~g2`-Suffix im Ordnernamen harmlos ist. Schritt 12 von
+  Workflow B verweist jetzt darauf.
+
 ## v0.65.0 (2026-09-13)
 
 - `camperfuchs-plugin-sync`: **Bahti macht erstmal nichts** — festgehalten in den Stammdaten und
