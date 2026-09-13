@@ -9,6 +9,25 @@ Check „bin ich aktuell?": installierte Plugin-Version mit dem obersten Eintrag
 
 ---
 
+## v0.67.0 (2026-09-13)
+
+**camperfuchs-cache-purge - Purge-Disziplin, mit Zahlen belegt**
+
+Anlass: Seobility meldete 6.898 Seiten mit langer Antwortzeit. Ursache war nicht der Server,
+sondern acht Vollpurges an einem einzigen Abend (12.09., 17:15-00:25).
+
+- `cf_purge.sh --all` verlangt jetzt zusaetzlich `--wirklich` und erklaert beim Abbruch den
+  gezielten Weg. Ein Vollpurge kostet rund 70 Minuten kalten Edge fuer ~9.700 Stadtseiten.
+- Nach einem bestaetigten Vollpurge stoesst das Skript den Warmer auf srv2 selbst an, statt bis
+  zu 5 Minuten auf den canary zu warten.
+- Jeder Purge schreibt eine Zeile nach `scripts/cf_purge.log` (Zeitpunkt, `CF_SESSION`,
+  Benutzer@Host, Modus, Anzahl). Cloudflare protokolliert Purges nicht im Audit-Log - am
+  13.09.2026 geprueft.
+- SKILL.md: neuer Abschnitt "Purge-Disziplin" mit den gemessenen TTFB-Werten (Edge-HIT
+  0,04-0,3 s, komplett kalt 1,5-1,9 s, unter Last bis 11 s) und dem teuer gelernten Befund,
+  dass der Edge selten abgerufene Seiten trotz 7-Tage-TTL nach etwa einer Stunde wieder
+  auswirft (LRU). Mehr LP-Replicas helfen dagegen nicht - am 13.09. gegengemessen.
+
 ## v0.66.0 (2026-09-13)
 
 - `camperfuchs-plugin-sync`: **Cowork ersetzt eine Installation nicht, es legt die neue daneben.**

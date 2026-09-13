@@ -18,10 +18,17 @@ Gezielter Cloudflare-Edge-Purge für camperfuchs.de. Löst das bekannte Propagat
 
 ```bash
 cd 05_Skills-Automation/camperfuchs-cache-purge/scripts
+export CF_SESSION=A7                                # eigenes Tafel-Kürzel, landet im Protokoll
 ./cf_purge.sh /ihr-wohnmobil-ratgeber/faq/          # ein Pfad, www. wird ergänzt
-./cf_purge.sh https://www.camperfuchs.de/a /b /c    # mehrere URLs
-./cf_purge.sh --all                                 # ganzer Edge (nur wenn nötig)
+./cf_purge.sh https://www.camperfuchs.de/a /b /c    # mehrere URLs (30er-Blöcke automatisch)
 ```
+
+**`--all` ist keine Option für Inhaltsänderungen.** Das Skript verlangt seit dem 13.09.2026
+zusätzlich `--wirklich` und erklärt beim Abbruch, warum. Details unten unter „Purge-Disziplin".
+
+Jeder Purge schreibt eine Zeile nach `scripts/cf_purge.log` (Zeitpunkt, `CF_SESSION`,
+Benutzer@Host, Modus, Anzahl). Cloudflare selbst protokolliert Purges **nicht** im Audit-Log —
+am 13.09.2026 geprüft, deshalb das eigene Protokoll.
 
 Das Skript sucht `.secrets` selbstständig aufwärts und nutzt den purge-fähigen Token. Erwartete Ausgabe pro Block: `OK`.
 
@@ -65,7 +72,41 @@ Merksatz: **öffentlich hochgeladen = erst weg, wenn WP gelöscht UND gepurgt UN
 
 Gleichwertig: SPC-REST-Endpoint `POST /wp-json/spc/v1/cache/purge` (Auth = WP App-Password bjoerndunker, Body `{}`) → `{"success":true}`. Nützlich, wenn der CF-Token mal nicht greift.
 
+## Purge-Disziplin — was ein Vollpurge wirklich kostet (gemessen 13.09.2026)
+
+`purge_everything` wirft rund **9.700 Stadt-Landingpages** aus dem Edge. Danach gilt:
+
+| Zustand | TTFB einer Stadt-LP |
+|---|---|
+| Edge-HIT | 0,04–0,3 s |
+| Edge-MISS, Origin-Cache noch warm | ~0,5 s |
+| komplett kalt | 1,5–1,9 s |
+| kalt unter Crawler-/Warmer-Last | p50 2,5 s, p90 5 s, bis 11 s |
+
+Der Warmer auf srv2 braucht für einen kompletten Durchlauf **rund 70 Minuten** (9.722 URLs,
+6 parallel — schneller geht es nicht, der Origin schafft 2–3 Kalt-Renders/s; mehr Replicas
+ändern daran nichts, am 13.09. gegengemessen). So lange ist der lange Schwanz kalt.
+
+Am **12.09.2026** wurden zwischen 17:15 und 00:25 **acht** Vollpurges ausgelöst. Genau das ist
+der Grund, warum Seobility 6.898 Seiten als „lange Antwortzeit" gemeldet hat.
+
+**Regel:**
+
+1. Inhaltsänderung → betroffene URLs nennen, nie `--all`. Auch 200 URLs sind kein Problem.
+2. WordPress-Widget/Menü/Theme (wirkt auf alle Seiten) → trotzdem erst die tatsächlich
+   betroffenen Seiten purgen, zusätzlich `POST /wp-json/spc/v1/cache/purge` gegen den
+   Origin-Cache. Das ersetzt den Vollpurge.
+3. `--all --wirklich` bleibt richtig nach einem prod-Deploy mit neuen Chunk-Hashes — dort
+   macht die Pipeline es ohnehin selbst (`ci/deploy-prod-pipelines.yml`). Von Hand nur, wenn
+   wirklich jede Seite betroffen ist.
+4. Nach jedem Vollpurge den Warmer anstoßen, statt bis zu 5 Minuten auf den canary zu warten.
+   Das Skript macht das selbst, wenn es SSH zu srv2 hat:
+   `ssh srv2 'setsid nohup /usr/local/cf/cf-cache-warm.sh all >/dev/null 2>&1 &'`
+
 ## Grenzen
 
 - Cloudflare: max. 30 URLs pro Purge-Request → das Skript teilt automatisch in 30er-Blöcke.
-- `--all` (purge_everything) sparsam einsetzen — kühlt den ganzen Edge aus, kurzzeitig langsamere TTFB bis re-warm.
+- **Der Edge hält nicht, was die TTL verspricht.** Selten abgerufene Seiten fliegen trotz
+  7-Tage-Edge-TTL nach etwa einer Stunde wieder raus (LRU, am 13.09.2026 gemessen: gewärmte
+  Seiten 30–90 min später wieder 0/20 HIT). Ein Purge ist deshalb teurer als er aussieht, und
+  Wärmen ist kein Ersatz für einen sparsamen Umgang damit.
